@@ -10,6 +10,13 @@ services:
       - FLASK_HOST=0.0.0.0
       - FLASK_PORT=5000
       - DATABASE_PATH=/app/data/starlink_data.db
+      # Optional: Set your Starlink account name (default: "Starlink User")
+      # - STARLINK_ACCOUNT_NAME=Your Name Here
+      # Optional: Set your location manually (if GPS not available from dish)
+      # - STARLINK_LOCATION=San Francisco, CA, USA
+      # Or set coordinates:
+      # - STARLINK_LATITUDE=37.7749
+      # - STARLINK_LONGITUDE=-122.4194
     volumes:
       # Persistent data storage for SQLite database
       - ./data:/app/data

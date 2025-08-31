@@ -7,6 +7,8 @@ import json
 from datetime import datetime, timedelta
 from collections import deque
 import atexit
+import requests
+from functools import lru_cache
 
 # Add temp3 directory to path to use the working implementation
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), 'temp3'))
@@ -64,6 +66,51 @@ class DataStore:
 
 # Global data store
 data_store = DataStore()
+
+@lru_cache(maxsize=10)
+def reverse_geocode(lat, lon):
+    """Get location name from coordinates using reverse geocoding"""
+    try:
+        # Use Nominatim (OpenStreetMap) for free reverse geocoding
+        url = f"https://nominatim.openstreetmap.org/reverse"
+        params = {
+            'lat': lat,
+            'lon': lon,
+            'format': 'json',
+            'zoom': 10  # City level detail
+        }
+        headers = {
+            'User-Agent': 'Starlink-Monitor/1.0'  # Required by Nominatim
+        }
+        
+        response = requests.get(url, params=params, headers=headers, timeout=2)
+        if response.status_code == 200:
+            data = response.json()
+            address = data.get('address', {})
+            
+            # Build location string from components
+            parts = []
+            if address.get('city'):
+                parts.append(address['city'])
+            elif address.get('town'):
+                parts.append(address['town'])
+            elif address.get('village'):
+                parts.append(address['village'])
+            
+            if address.get('state'):
+                parts.append(address['state'])
+            elif address.get('county'):
+                parts.append(address['county'])
+            
+            if address.get('country'):
+                parts.append(address['country'])
+            
+            if parts:
+                return ', '.join(parts)
+    except Exception as e:
+        app.logger.debug(f"Reverse geocoding failed: {e}")
+    
+    return None
 
 def calculate_quality_score(latency, download_mbps, upload_mbps, obstruction_pct, snr_good):
     """Calculate connection quality score (0-100)"""
@@ -668,18 +715,65 @@ def speedtest_interface():
                     margin: 0;
                     font-size: 2.5em;
                 }}
-                .nav-links {{
-                    text-align: center;
+                .main-nav {{
+                    background: rgba(255, 255, 255, 0.95);
+                    border-radius: 12px;
+                    padding: 20px 30px;
                     margin-bottom: 30px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                    backdrop-filter: blur(10px);
                 }}
-                .nav-links a {{
-                    color: #667eea;
+                .nav-brand {{
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }}
+                .nav-logo {{
+                    font-size: 1.5em;
+                }}
+                .nav-title {{
+                    font-size: 1.2em;
+                    font-weight: 600;
+                    color: #333;
+                }}
+                .nav-links {{
+                    display: flex;
+                    gap: 8px;
+                }}
+                .nav-link {{
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 12px 20px;
+                    border-radius: 8px;
                     text-decoration: none;
-                    margin: 0 15px;
+                    color: #666;
                     font-weight: 500;
+                    transition: all 0.2s ease;
+                    background: transparent;
                 }}
-                .nav-links a:hover {{
-                    text-decoration: underline;
+                .nav-link:hover {{
+                    background: #f0f4ff;
+                    color: #4f46e5;
+                    transform: translateY(-1px);
+                }}
+                .nav-link.active {{
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+                }}
+                .nav-link.active:hover {{
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+                }}
+                .nav-icon {{
+                    font-size: 1.1em;
+                }}
+                .nav-text {{
+                    font-size: 0.95em;
                 }}
                 
                 .test-section {{
@@ -783,11 +877,44 @@ def speedtest_interface():
                 }}
                 
                 @media (max-width: 768px) {{
+                    .main-nav {{
+                        flex-direction: column;
+                        gap: 20px;
+                        padding: 20px;
+                    }}
+                    .nav-brand {{
+                        justify-content: center;
+                    }}
+                    .nav-links {{
+                        justify-content: center;
+                        flex-wrap: wrap;
+                    }}
+                    .nav-link {{
+                        padding: 10px 16px;
+                    }}
+                    .nav-text {{
+                        font-size: 0.85em;
+                    }}
                     .results-section {{
                         grid-template-columns: 1fr;
                     }}
                     .stats-grid {{
                         grid-template-columns: 1fr 1fr;
+                    }}
+                    .header h1 {{
+                        font-size: 2em;
+                    }}
+                }}
+                
+                @media (max-width: 480px) {{
+                    .nav-text {{
+                        display: none;
+                    }}
+                    .nav-link {{
+                        padding: 12px;
+                    }}
+                    .stats-grid {{
+                        grid-template-columns: 1fr;
                     }}
                 }}
             </style>
@@ -798,11 +925,26 @@ def speedtest_interface():
                     <h1>🚀 Starlink Speed Test</h1>
                 </div>
                 
-                <div class="nav-links">
-                    <a href="/">← Back to Monitor</a>
-                    <a href="/analytics">📊 Analytics Dashboard</a>
-                    <a href="#schedules">⏰ Scheduled Tests</a>
-                </div>
+                <nav class="main-nav">
+                    <div class="nav-brand">
+                        <span class="nav-logo">🛰️</span>
+                        <span class="nav-title">Starlink Monitor</span>
+                    </div>
+                    <div class="nav-links">
+                        <a href="/" class="nav-link">
+                            <span class="nav-icon">📊</span>
+                            <span class="nav-text">Live Monitor</span>
+                        </a>
+                        <a href="/speedtest" class="nav-link active">
+                            <span class="nav-icon">⚡</span>
+                            <span class="nav-text">Speed Test</span>
+                        </a>
+                        <a href="/analytics" class="nav-link">
+                            <span class="nav-icon">📈</span>
+                            <span class="nav-text">Analytics</span>
+                        </a>
+                    </div>
+                </nav>
                 
                 <div class="test-section">
                     <h2>Run Speed Test</h2>
@@ -1111,21 +1253,65 @@ def analytics():
                     padding-bottom: 10px;
                     margin: 30px 0 20px 0;
                 }}
-                .nav-links {{
+                .main-nav {{
+                    background: rgba(255, 255, 255, 0.95);
+                    border-radius: 12px;
+                    padding: 20px 30px;
                     margin-bottom: 30px;
-                    text-align: center;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                    backdrop-filter: blur(10px);
                 }}
-                .nav-links a {{
-                    margin: 0 15px;
-                    padding: 10px 20px;
-                    background: #667eea;
-                    color: white;
+                .nav-brand {{
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }}
+                .nav-logo {{
+                    font-size: 1.5em;
+                }}
+                .nav-title {{
+                    font-size: 1.2em;
+                    font-weight: 600;
+                    color: #333;
+                }}
+                .nav-links {{
+                    display: flex;
+                    gap: 8px;
+                }}
+                .nav-link {{
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 12px 20px;
+                    border-radius: 8px;
                     text-decoration: none;
-                    border-radius: 5px;
-                    display: inline-block;
+                    color: #666;
+                    font-weight: 500;
+                    transition: all 0.2s ease;
+                    background: transparent;
                 }}
-                .nav-links a:hover {{
-                    background: #5a67d8;
+                .nav-link:hover {{
+                    background: #f0f4ff;
+                    color: #4f46e5;
+                    transform: translateY(-1px);
+                }}
+                .nav-link.active {{
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+                }}
+                .nav-link.active:hover {{
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+                }}
+                .nav-icon {{
+                    font-size: 1.1em;
+                }}
+                .nav-text {{
+                    font-size: 0.95em;
                 }}
                 
                 /* Summary Cards */
@@ -1183,12 +1369,45 @@ def analytics():
                 
                 /* Responsive */
                 @media (max-width: 768px) {{
+                    .main-nav {{
+                        flex-direction: column;
+                        gap: 20px;
+                        padding: 20px;
+                    }}
+                    .nav-brand {{
+                        justify-content: center;
+                    }}
+                    .nav-links {{
+                        justify-content: center;
+                        flex-wrap: wrap;
+                    }}
+                    .nav-link {{
+                        padding: 10px 16px;
+                    }}
+                    .nav-text {{
+                        font-size: 0.85em;
+                    }}
                     .chart-row {{
                         grid-template-columns: 1fr;
                     }}
                     .container {{
                         margin: 10px;
                         padding: 20px;
+                    }}
+                }}
+                
+                @media (max-width: 480px) {{
+                    .nav-text {{
+                        display: none;
+                    }}
+                    .nav-link {{
+                        padding: 12px;
+                    }}
+                    h1 {{
+                        font-size: 1.8em;
+                    }}
+                    .summary-grid {{
+                        grid-template-columns: 1fr;
                     }}
                 }}
                 
@@ -1353,11 +1572,26 @@ def analytics():
         <div class="container">
             <h1>📊 Starlink Analytics Dashboard</h1>
             
-            <div class="nav-links">
-                <a href="/">🛰️ Live Monitor</a>
-                <a href="/analytics">📊 Analytics</a>
-                <a href="/speedtest">⚡ Speed Test</a>
-            </div>
+            <nav class="main-nav">
+                <div class="nav-brand">
+                    <span class="nav-logo">🛰️</span>
+                    <span class="nav-title">Starlink Monitor</span>
+                </div>
+                <div class="nav-links">
+                    <a href="/" class="nav-link">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-text">Live Monitor</span>
+                    </a>
+                    <a href="/speedtest" class="nav-link">
+                        <span class="nav-icon">⚡</span>
+                        <span class="nav-text">Speed Test</span>
+                    </a>
+                    <a href="/analytics" class="nav-link active">
+                        <span class="nav-icon">📈</span>
+                        <span class="nav-text">Analytics</span>
+                    </a>
+                </div>
+            </nav>
             
             <h2>📈 Summary Statistics</h2>
             <div class="summary-grid">
@@ -2136,16 +2370,92 @@ def index():
         # Get device info
         hardware_version = ""
         software_version = ""
+        
+        # Try to get account name from environment or use default
+        account_name = os.environ.get('STARLINK_ACCOUNT_NAME', 'Starlink User')
+        dish_id = ""
+        
         if hasattr(status, 'device_info'):
             hardware_version = status.device_info.hardware_version if hasattr(status.device_info, 'hardware_version') else ""
             software_version = status.device_info.software_version if hasattr(status.device_info, 'software_version') else ""
+            
+            # Try to get dish ID or account identifier if not set via environment
+            if account_name == 'Starlink User':
+                if hasattr(status.device_info, 'id'):
+                    dish_id = status.device_info.id
+                    account_name = f"Starlink-{dish_id[:8]}" if len(dish_id) > 8 else f"Starlink-{dish_id}"
+                elif hasattr(status.device_info, 'dish_id'):
+                    dish_id = status.device_info.dish_id
+                    account_name = f"Starlink-{dish_id[:8]}"
         
-        # Get GPS status
+        # Get GPS status and location
         gps_valid = False
         gps_sats = 0
+        latitude = 0.0
+        longitude = 0.0
+        altitude = 0.0
+        
+        # Check for manually set location from environment
+        manual_location = os.environ.get('STARLINK_LOCATION', '')
+        manual_lat = float(os.environ.get('STARLINK_LATITUDE', '0'))
+        manual_lon = float(os.environ.get('STARLINK_LONGITUDE', '0'))
+        
+        location_str = "Location unavailable"
+        
         if hasattr(status, 'gps_stats'):
             gps_valid = status.gps_stats.gps_valid if hasattr(status.gps_stats, 'gps_valid') else False
             gps_sats = status.gps_stats.gps_sats if hasattr(status.gps_stats, 'gps_sats') else 0
+            
+            # Debug: Log available GPS fields
+            # app.logger.info(f"GPS Stats fields: {dir(status.gps_stats)}")
+            
+            # Try to get GPS coordinates - check different possible field names
+            if hasattr(status.gps_stats, 'latitude'):
+                latitude = status.gps_stats.latitude
+            elif hasattr(status.gps_stats, 'lat'):
+                latitude = status.gps_stats.lat
+                
+            if hasattr(status.gps_stats, 'longitude'):
+                longitude = status.gps_stats.longitude
+            elif hasattr(status.gps_stats, 'lon'):
+                longitude = status.gps_stats.lon
+            elif hasattr(status.gps_stats, 'lng'):
+                longitude = status.gps_stats.lng
+                
+            if hasattr(status.gps_stats, 'altitude'):
+                altitude = status.gps_stats.altitude
+            elif hasattr(status.gps_stats, 'alt'):
+                altitude = status.gps_stats.alt
+                
+            # Format location string if we have valid coordinates
+            if gps_valid and (latitude != 0 or longitude != 0):
+                # Try to get human-readable location
+                city_location = reverse_geocode(latitude, longitude)
+                if city_location:
+                    location_str = city_location
+                    # Add coordinates as tooltip or secondary info
+                    location_str += f" ({latitude:.4f}°, {longitude:.4f}°)"
+                else:
+                    # Fallback to coordinates only
+                    location_str = f"{latitude:.6f}°, {longitude:.6f}°"
+                
+                if altitude > 0:
+                    location_str += f" • {altitude:.0f}m altitude"
+        
+        # Use manual location if GPS not available but manual location is set
+        if location_str == "Location unavailable":
+            if manual_location:
+                location_str = manual_location
+            elif manual_lat != 0 and manual_lon != 0:
+                latitude = manual_lat
+                longitude = manual_lon
+                # Try to get human-readable location
+                city_location = reverse_geocode(latitude, longitude)
+                if city_location:
+                    location_str = city_location
+                    location_str += f" ({latitude:.4f}°, {longitude:.4f}°)"
+                else:
+                    location_str = f"{latitude:.6f}°, {longitude:.6f}°"
         
         # Get SNR status
         snr_above_noise = status.is_snr_above_noise_floor if hasattr(status, 'is_snr_above_noise_floor') else False
@@ -2186,6 +2496,68 @@ def index():
                     align-items: center;
                 }}
                 .emoji {{ margin-right: 10px; font-size: 1.2em; }}
+                
+                /* Navigation */
+                .main-nav {{
+                    background: rgba(255, 255, 255, 0.95);
+                    border-radius: 12px;
+                    padding: 20px 30px;
+                    margin-bottom: 30px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                    backdrop-filter: blur(10px);
+                }}
+                .nav-brand {{
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }}
+                .nav-logo {{
+                    font-size: 1.5em;
+                }}
+                .nav-title {{
+                    font-size: 1.2em;
+                    font-weight: 600;
+                    color: #333;
+                }}
+                .nav-links {{
+                    display: flex;
+                    gap: 8px;
+                }}
+                .nav-link {{
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    color: #666;
+                    font-weight: 500;
+                    transition: all 0.2s ease;
+                    background: transparent;
+                }}
+                .nav-link:hover {{
+                    background: #f0f4ff;
+                    color: #4f46e5;
+                    transform: translateY(-1px);
+                }}
+                .nav-link.active {{
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+                }}
+                .nav-link.active:hover {{
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+                }}
+                .nav-icon {{
+                    font-size: 1.1em;
+                }}
+                .nav-text {{
+                    font-size: 0.95em;
+                }}
                 
                 /* Stats Grid */
                 .stats-grid {{ 
@@ -2234,12 +2606,54 @@ def index():
                 
                 /* Responsive */
                 @media (max-width: 768px) {{
+                    .main-nav {{
+                        flex-direction: column;
+                        gap: 20px;
+                        padding: 20px;
+                    }}
+                    .nav-brand {{
+                        justify-content: center;
+                    }}
+                    .nav-links {{
+                        justify-content: center;
+                        flex-wrap: wrap;
+                    }}
+                    .nav-link {{
+                        padding: 10px 16px;
+                    }}
+                    .nav-text {{
+                        font-size: 0.85em;
+                    }}
                     .charts-grid {{
                         grid-template-columns: 1fr;
                     }}
                     .container {{
                         margin: 10px;
                         padding: 20px;
+                    }}
+                    .stats-grid {{
+                        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                    }}
+                    h1 {{
+                        font-size: 1.5em;
+                        flex-direction: column;
+                        text-align: center;
+                    }}
+                }}
+                
+                @media (max-width: 480px) {{
+                    .nav-text {{
+                        display: none;
+                    }}
+                    .nav-link {{
+                        padding: 12px;
+                    }}
+                    .stats-grid {{
+                        grid-template-columns: 1fr 1fr;
+                    }}
+                    .container {{
+                        margin: 5px;
+                        padding: 15px;
                     }}
                 }}
                 
@@ -2270,10 +2684,27 @@ def index():
                 .info-item {{
                     display: flex; 
                     justify-content: space-between; 
-                    padding: 5px 0; 
+                    padding: 8px 0; 
                     border-bottom: 1px solid #e0e0e0;
                 }}
+                .info-item:first-child {{
+                    padding-top: 0;
+                    font-weight: 600;
+                    color: #4f46e5;
+                }}
+                .info-item:first-child strong {{
+                    color: #4f46e5;
+                }}
                 .info-item:last-child {{ border-bottom: none; }}
+                .info-item a {{
+                    color: #4f46e5;
+                    text-decoration: none;
+                    transition: opacity 0.2s;
+                }}
+                .info-item a:hover {{
+                    opacity: 0.8;
+                    text-decoration: underline;
+                }}
                 .timestamp {{
                     text-align: center; 
                     color: #666; 
@@ -2319,6 +2750,27 @@ def index():
                     <span style="font-size: 0.5em; color: #666;">{state}</span>
                 </span>
             </h1>
+            
+            <nav class="main-nav">
+                <div class="nav-brand">
+                    <span class="nav-logo">🛰️</span>
+                    <span class="nav-title">Starlink Monitor</span>
+                </div>
+                <div class="nav-links">
+                    <a href="/" class="nav-link active">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-text">Live Monitor</span>
+                    </a>
+                    <a href="/speedtest" class="nav-link">
+                        <span class="nav-icon">⚡</span>
+                        <span class="nav-text">Speed Test</span>
+                    </a>
+                    <a href="/analytics" class="nav-link">
+                        <span class="nav-icon">📈</span>
+                        <span class="nav-text">Analytics</span>
+                    </a>
+                </div>
+            </nav>
             
             {f'<div class="success-notice"><span class="notice-icon">✅</span><strong>Real Speed Data:</strong> Showing actual measured speeds from recent high-usage periods!</div>' if has_real_data else ''}
             
@@ -2392,6 +2844,10 @@ def index():
             
             <div class="info-section">
                 <div class="info-item">
+                    <span>Account Name</span>
+                    <strong>{account_name}</strong>
+                </div>
+                <div class="info-item">
                     <span>Connection Uptime</span>
                     <strong>{uptime_str}</strong>
                 </div>
@@ -2406,6 +2862,12 @@ def index():
                 <div class="info-item">
                     <span>GPS Status</span>
                     <strong>{'✅ Valid' if gps_valid else '❌ Invalid'} ({gps_sats} satellites)</strong>
+                </div>
+                <div class="info-item">
+                    <span>Location</span>
+                    <strong>
+                        {f'<a href="https://www.google.com/maps?q={latitude},{longitude}" target="_blank" style="color: #4f46e5; text-decoration: none;">{location_str} 🗺️</a>' if (latitude != 0 and longitude != 0) else location_str}
+                    </strong>
                 </div>
                 <div class="info-item">
                     <span>Hardware Version</span>
