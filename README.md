@@ -1,4 +1,4 @@
-# Starlink Monitor 🛰️
+# Starlink Speed Monitor 🛰️
 
 A comprehensive real-time monitoring application for your Starlink dish, built with Flask and Docker.
 
