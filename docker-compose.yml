@@ -9,8 +9,11 @@ services:
     environment:
       - FLASK_HOST=0.0.0.0
       - FLASK_PORT=5000
-    # Uncomment below for live code updates during development:
+      - DATABASE_PATH=/app/data/starlink_data.db
     volumes:
+      # Persistent data storage for SQLite database
+      - ./data:/app/data
+      # Development volumes (for live code updates)
       - ./temp3:/app/temp3:ro
       - ./src:/app/src:ro
     logging:
@@ -18,3 +21,26 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add PostgreSQL for production use
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: starlink-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     - POSTGRES_DB=starlink
+  #     - POSTGRES_USER=starlink
+  #     - POSTGRES_PASSWORD=your_secure_password
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+# volumes:
+#   postgres_data:

@@ -6,3 +6,4 @@ typing-extensions>=3.7.4
 pytz
 croniter
 yagrc
+requests
