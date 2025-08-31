@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  starlink-monitor:
+    build: .
+    container_name: starlink-monitor
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5000
+    # Uncomment below for live code updates during development:
+    volumes:
+      - ./temp3:/app/temp3:ro
+      - ./src:/app/src:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

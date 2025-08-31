@@ -1,0 +1,8 @@
+flask
+grpcio>=1.30.0
+grpcio-tools>=1.30.0
+protobuf>=3.12.0
+typing-extensions>=3.7.4
+pytz
+croniter
+yagrc
