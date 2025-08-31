@@ -1,14 +1,93 @@
-from flask import Flask
+from flask import Flask, jsonify
 import sys
 import os
 import time
 import statistics
+import json
+from datetime import datetime, timedelta
+from collections import deque
 
 # Add temp3 directory to path to use the working implementation
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), 'temp3'))
 import starlink_grpc
 
 app = Flask(__name__)
+
+# In-memory storage for historical data (in production, use Redis/database)
+class DataStore:
+    def __init__(self, max_points=300):  # Store 5 minutes at 1-second intervals
+        self.max_points = max_points
+        self.timestamps = deque(maxlen=max_points)
+        self.latency_data = deque(maxlen=max_points)
+        self.download_speeds = deque(maxlen=max_points)
+        self.upload_speeds = deque(maxlen=max_points)
+        self.obstruction_data = deque(maxlen=max_points)
+        self.quality_scores = deque(maxlen=max_points)
+    
+    def add_data_point(self, latency, download_mbps, upload_mbps, obstruction_pct, quality_score):
+        now = datetime.now()
+        self.timestamps.append(now.strftime('%H:%M:%S'))
+        self.latency_data.append(latency)
+        self.download_speeds.append(download_mbps)
+        self.upload_speeds.append(upload_mbps)
+        self.obstruction_data.append(obstruction_pct)
+        self.quality_scores.append(quality_score)
+    
+    def get_chart_data(self):
+        return {
+            'timestamps': list(self.timestamps),
+            'latency': list(self.latency_data),
+            'download_speeds': list(self.download_speeds),
+            'upload_speeds': list(self.upload_speeds),
+            'obstruction': list(self.obstruction_data),
+            'quality_scores': list(self.quality_scores)
+        }
+
+# Global data store
+data_store = DataStore()
+
+def calculate_quality_score(latency, download_mbps, upload_mbps, obstruction_pct, snr_good):
+    """Calculate connection quality score (0-100)"""
+    score = 100
+    
+    # Latency impact (0-30 points)
+    if latency > 100:
+        score -= 30
+    elif latency > 75:
+        score -= 20
+    elif latency > 50:
+        score -= 10
+    
+    # Speed impact (0-25 points each)
+    if download_mbps < 10:
+        score -= 25
+    elif download_mbps < 25:
+        score -= 15
+    elif download_mbps < 50:
+        score -= 5
+    
+    if upload_mbps < 3:
+        score -= 25
+    elif upload_mbps < 8:
+        score -= 15
+    elif upload_mbps < 15:
+        score -= 5
+    
+    # Obstruction impact (0-20 points)
+    if obstruction_pct > 10:
+        score -= 20
+    elif obstruction_pct > 5:
+        score -= 15
+    elif obstruction_pct > 1:
+        score -= 10
+    elif obstruction_pct > 0.1:
+        score -= 5
+    
+    # SNR impact (0-10 points)
+    if not snr_good:
+        score -= 10
+    
+    return max(0, min(100, score))
 
 def get_speed_data():
     """Get speed data - try multiple approaches to find actual speeds"""
@@ -24,7 +103,6 @@ def get_speed_data():
             
             if downlink_data and uplink_data:
                 # Look for significant activity in the last 5 minutes
-                # Filter for speeds above 1 Mbps to find actual usage periods
                 active_downlink = [x for x in downlink_data if x > 1e6]  # > 1 Mbps
                 active_uplink = [x for x in uplink_data if x > 1e6]      # > 1 Mbps
                 
@@ -74,6 +152,49 @@ def get_speed_data():
         print(f"Error getting status speeds: {e}")
     
     return None
+
+# API Endpoints for Charts
+@app.route('/api/chart-data')
+def chart_data():
+    """Return chart data in JSON format"""
+    return jsonify(data_store.get_chart_data())
+
+@app.route('/api/current-stats')
+def current_stats():
+    """Return current statistics for updating charts"""
+    try:
+        status = starlink_grpc.get_status()
+        speed_data = get_speed_data()
+        
+        # Get current metrics
+        latency = status.pop_ping_latency_ms if hasattr(status, 'pop_ping_latency_ms') else 0
+        downlink_mbps = speed_data['download_mbps'] if speed_data else 0
+        uplink_mbps = speed_data['upload_mbps'] if speed_data else 0
+        
+        # Obstruction info
+        fraction_obstructed = 0
+        if hasattr(status, 'obstruction_stats') and hasattr(status.obstruction_stats, 'fraction_obstructed'):
+            fraction_obstructed = status.obstruction_stats.fraction_obstructed * 100
+        
+        # SNR status
+        snr_above_noise = status.is_snr_above_noise_floor if hasattr(status, 'is_snr_above_noise_floor') else False
+        
+        # Calculate quality score
+        quality_score = calculate_quality_score(latency, downlink_mbps, uplink_mbps, fraction_obstructed, snr_above_noise)
+        
+        # Add to data store
+        data_store.add_data_point(latency, downlink_mbps, uplink_mbps, fraction_obstructed, quality_score)
+        
+        return jsonify({
+            'latency': round(latency, 1),
+            'download_mbps': round(downlink_mbps, 1),
+            'upload_mbps': round(uplink_mbps, 1),
+            'obstruction_pct': round(fraction_obstructed, 2),
+            'quality_score': round(quality_score, 0),
+            'timestamp': datetime.now().strftime('%H:%M:%S')
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/speedtest')
 def speedtest_trigger():
@@ -155,44 +276,167 @@ def index():
         # Get Ethernet speed
         eth_speed = status.eth_speed_mbps if hasattr(status, 'eth_speed_mbps') else 0
         
+        # Calculate quality score
+        quality_score = calculate_quality_score(latency, downlink_mbps, uplink_mbps, fraction_obstructed, snr_above_noise)
+        
         return f"""
+        <!DOCTYPE html>
         <html>
         <head>
-            <title>Starlink Monitor</title>
+            <title>Starlink Speed Monitor</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
             <style>
-                body {{ font-family: 'Segoe UI', Tahoma, Arial, sans-serif; margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }}
-                .container {{ max-width: 900px; margin: 40px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }}
-                h1 {{ color: #333; margin-bottom: 30px; display: flex; align-items: center; }}
+                body {{
+                    font-family: 'Segoe UI', Tahoma, Arial, sans-serif; 
+                    margin: 0; 
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: #333;
+                }}
+                .container {{
+                    max-width: 1200px; 
+                    margin: 20px auto; 
+                    background: white; 
+                    padding: 30px; 
+                    border-radius: 15px; 
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                }}
+                h1 {{
+                    color: #333; 
+                    margin-bottom: 30px; 
+                    display: flex; 
+                    align-items: center;
+                }}
                 .emoji {{ margin-right: 10px; font-size: 1.2em; }}
-                .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }}
-                .stat {{ padding: 15px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 10px; }}
-                .stat-label {{ font-size: 0.9em; color: #666; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }}
+                
+                /* Stats Grid */
+                .stats-grid {{ 
+                    display: grid; 
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+                    gap: 20px; 
+                    margin-bottom: 30px;
+                }}
+                .stat {{
+                    padding: 15px; 
+                    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); 
+                    border-radius: 10px;
+                    text-align: center;
+                }}
+                .stat-label {{ font-size: 0.9em; color: #666; margin-bottom: 5px; }}
                 .stat-value {{ font-size: 1.8em; font-weight: bold; color: #333; }}
                 .stat-unit {{ font-size: 0.7em; color: #666; margin-left: 5px; }}
                 .stat-note {{ font-size: 0.7em; color: #999; margin-top: 5px; }}
-                .stat-peak {{ font-size: 0.8em; color: #666; margin-top: 3px; }}
+                
+                /* Quality Score Styling */
+                .quality-excellent {{ color: #10b981; }}
+                .quality-good {{ color: #3b82f6; }}
+                .quality-fair {{ color: #f59e0b; }}
+                .quality-poor {{ color: #ef4444; }}
+                
+                /* Charts Grid */
+                .charts-grid {{
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 20px;
+                    margin-bottom: 30px;
+                }}
+                .chart-container {{
+                    background: #f8f9fa;
+                    padding: 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                }}
+                .chart-title {{
+                    font-size: 1.1em;
+                    font-weight: bold;
+                    color: #333;
+                    margin-bottom: 15px;
+                    text-align: center;
+                }}
+                
+                /* Responsive */
+                @media (max-width: 768px) {{
+                    .charts-grid {{
+                        grid-template-columns: 1fr;
+                    }}
+                    .container {{
+                        margin: 10px;
+                        padding: 20px;
+                    }}
+                }}
+                
+                /* Status indicators */
+                .status-indicator {{
+                    display: inline-block; 
+                    width: 12px; 
+                    height: 12px; 
+                    border-radius: 50%; 
+                    margin-right: 8px; 
+                    animation: pulse 2s infinite;
+                }}
+                .status-connected {{ background: #10b981; }}
+                .status-disconnected {{ background: #ef4444; }}
+                @keyframes pulse {{ 0% {{ opacity: 1; }} 50% {{ opacity: 0.5; }} 100% {{ opacity: 1; }} }}
+                
                 .good {{ color: #10b981; }}
                 .warning {{ color: #f59e0b; }}
                 .bad {{ color: #ef4444; }}
-                .info-section {{ margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 10px; }}
-                .info-item {{ display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #e0e0e0; }}
+                
+                .info-section {{
+                    margin-top: 30px; 
+                    padding: 15px; 
+                    background: #f8f9fa; 
+                    border-radius: 10px;
+                    font-size: 0.9em;
+                }}
+                .info-item {{
+                    display: flex; 
+                    justify-content: space-between; 
+                    padding: 5px 0; 
+                    border-bottom: 1px solid #e0e0e0;
+                }}
                 .info-item:last-child {{ border-bottom: none; }}
-                .timestamp {{ text-align: center; color: #666; font-size: 0.9em; margin-top: 20px; }}
-                .status-indicator {{ display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; animation: pulse 2s infinite; }}
-                .status-connected {{ background: #10b981; }}
-                .status-disconnected {{ background: #ef4444; }}
-                .success-notice {{ background: #d1fae5; border: 1px solid #10b981; border-radius: 8px; padding: 12px; margin-bottom: 20px; color: #065f46; }}
-                .info-notice {{ background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 12px; margin-bottom: 20px; color: #92400e; }}
+                .timestamp {{
+                    text-align: center; 
+                    color: #666; 
+                    font-size: 0.9em; 
+                    margin-top: 20px;
+                }}
+                
+                .success-notice {{ 
+                    background: #d1fae5; 
+                    border: 1px solid #10b981; 
+                    border-radius: 8px; 
+                    padding: 12px; 
+                    margin-bottom: 20px; 
+                    color: #065f46; 
+                }}
+                .info-notice {{ 
+                    background: #fef3c7; 
+                    border: 1px solid #fbbf24; 
+                    border-radius: 8px; 
+                    padding: 12px; 
+                    margin-bottom: 20px; 
+                    color: #92400e; 
+                }}
                 .notice-icon {{ display: inline-block; margin-right: 8px; }}
-                .speed-test-btn {{ background: #667eea; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block; margin-top: 10px; }}
-                @keyframes pulse {{ 0% {{ opacity: 1; }} 50% {{ opacity: 0.5; }} 100% {{ opacity: 1; }} }}
+                .speed-test-btn {{ 
+                    background: #667eea; 
+                    color: white; 
+                    padding: 10px 20px; 
+                    border-radius: 5px; 
+                    text-decoration: none; 
+                    display: inline-block; 
+                    margin-top: 10px; 
+                }}
             </style>
         </head>
         <body>
         <div class="container">
             <h1>
                 <span class="emoji">🛰️</span>
-                Starlink Speed Monitor
+                Starlink Speed Monitor - Interactive Dashboard
                 <span style="margin-left: auto;">
                     <span class="status-indicator {'status-connected' if state == 'CONNECTED' else 'status-disconnected'}"></span>
                     <span style="font-size: 0.5em; color: #666;">{state}</span>
@@ -203,6 +447,7 @@ def index():
             
             {f'<div class="info-notice"><span class="notice-icon">ℹ️</span><strong>Low Activity Detected:</strong> The speeds shown reflect current low usage. <a href="/speedtest" class="speed-test-btn">Run Speed Test →</a></div>' if not has_real_data and downlink_mbps < 5 else ''}
             
+            <!-- Stats Grid -->
             <div class="stats-grid">
                 <div class="stat">
                     <div class="stat-label">Download Speed</div>
@@ -210,7 +455,6 @@ def index():
                         {downlink_mbps:.1f}<span class="stat-unit">Mbps</span>
                     </div>
                     <div class="stat-note">{speed_note}</div>
-                    {f'<div class="stat-peak">Peak: {peak_down:.1f} Mbps</div>' if peak_down > downlink_mbps else ''}
                 </div>
                 
                 <div class="stat">
@@ -219,11 +463,10 @@ def index():
                         {uplink_mbps:.1f}<span class="stat-unit">Mbps</span>
                     </div>
                     <div class="stat-note">{speed_note}</div>
-                    {f'<div class="stat-peak">Peak: {peak_up:.1f} Mbps</div>' if peak_up > uplink_mbps else ''}
                 </div>
                 
                 <div class="stat">
-                    <div class="stat-label">Network Latency</div>
+                    <div class="stat-label">Latency</div>
                     <div class="stat-value {'good' if latency < 50 else 'warning' if latency < 100 else 'bad'}">
                         {latency:.0f}<span class="stat-unit">ms</span>
                     </div>
@@ -231,11 +474,42 @@ def index():
                 </div>
                 
                 <div class="stat">
+                    <div class="stat-label">Connection Quality</div>
+                    <div class="stat-value {'quality-excellent' if quality_score >= 90 else 'quality-good' if quality_score >= 75 else 'quality-fair' if quality_score >= 50 else 'quality-poor'}">
+                        {quality_score:.0f}<span class="stat-unit">%</span>
+                    </div>
+                    <div class="stat-note">Overall Score</div>
+                </div>
+                
+                <div class="stat">
                     <div class="stat-label">Obstruction</div>
                     <div class="stat-value {'good' if fraction_obstructed < 1 else 'warning' if fraction_obstructed < 5 else 'bad'}">
                         {fraction_obstructed:.1f}<span class="stat-unit">%</span>
                     </div>
-                    <div class="stat-note">Sky visibility blocked</div>
+                    <div class="stat-note">Sky blocked</div>
+                </div>
+            </div>
+            
+            <!-- Charts Grid -->
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <div class="chart-title">📊 Network Latency (Last 5 Minutes)</div>
+                    <canvas id="latencyChart" width="400" height="200"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">⚡ Speed Trends (Mbps)</div>
+                    <canvas id="speedChart" width="400" height="200"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">🎯 Connection Quality Score</div>
+                    <canvas id="qualityChart" width="400" height="200"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">🚧 Obstruction Levels (%)</div>
+                    <canvas id="obstructionChart" width="400" height="200"></canvas>
                 </div>
             </div>
             
@@ -268,8 +542,189 @@ def index():
             
             <div class="timestamp">Last updated: {time.strftime('%Y-%m-%d %H:%M:%S')}</div>
         </div>
+
         <script>
-        setTimeout(function(){{ location.reload(); }}, 10000);
+        // Chart configurations
+        const chartConfig = {{
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {{
+                y: {{
+                    beginAtZero: true,
+                    grid: {{ color: 'rgba(0,0,0,0.1)' }},
+                    ticks: {{ font: {{ size: 10 }} }}
+                }},
+                x: {{
+                    grid: {{ color: 'rgba(0,0,0,0.1)' }},
+                    ticks: {{ 
+                        font: {{ size: 10 }},
+                        maxTicksLimit: 10
+                    }}
+                }}
+            }},
+            plugins: {{
+                legend: {{ 
+                    display: true,
+                    position: 'top',
+                    labels: {{ font: {{ size: 11 }} }}
+                }}
+            }},
+            animation: {{ duration: 0 }}
+        }};
+
+        // Initialize charts
+        const latencyCtx = document.getElementById('latencyChart').getContext('2d');
+        const speedCtx = document.getElementById('speedChart').getContext('2d');
+        const qualityCtx = document.getElementById('qualityChart').getContext('2d');
+        const obstructionCtx = document.getElementById('obstructionChart').getContext('2d');
+
+        const latencyChart = new Chart(latencyCtx, {{
+            type: 'line',
+            data: {{
+                labels: [],
+                datasets: [{{
+                    label: 'Latency (ms)',
+                    data: [],
+                    borderColor: 'rgb(99, 132, 255)',
+                    backgroundColor: 'rgba(99, 132, 255, 0.2)',
+                    tension: 0.4,
+                    fill: true
+                }}]
+            }},
+            options: {{
+                ...chartConfig,
+                scales: {{
+                    ...chartConfig.scales,
+                    y: {{
+                        ...chartConfig.scales.y,
+                        suggestedMax: 100
+                    }}
+                }}
+            }}
+        }});
+
+        const speedChart = new Chart(speedCtx, {{
+            type: 'line',
+            data: {{
+                labels: [],
+                datasets: [{{
+                    label: 'Download (Mbps)',
+                    data: [],
+                    borderColor: 'rgb(34, 197, 94)',
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                    tension: 0.4
+                }}, {{
+                    label: 'Upload (Mbps)',
+                    data: [],
+                    borderColor: 'rgb(239, 68, 68)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    tension: 0.4
+                }}]
+            }},
+            options: chartConfig
+        }});
+
+        const qualityChart = new Chart(qualityCtx, {{
+            type: 'line',
+            data: {{
+                labels: [],
+                datasets: [{{
+                    label: 'Quality Score (%)',
+                    data: [],
+                    borderColor: 'rgb(168, 85, 247)',
+                    backgroundColor: 'rgba(168, 85, 247, 0.2)',
+                    tension: 0.4,
+                    fill: true
+                }}]
+            }},
+            options: {{
+                ...chartConfig,
+                scales: {{
+                    ...chartConfig.scales,
+                    y: {{
+                        ...chartConfig.scales.y,
+                        min: 0,
+                        max: 100
+                    }}
+                }}
+            }}
+        }});
+
+        const obstructionChart = new Chart(obstructionCtx, {{
+            type: 'bar',
+            data: {{
+                labels: [],
+                datasets: [{{
+                    label: 'Obstruction (%)',
+                    data: [],
+                    backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                    borderColor: 'rgb(245, 158, 11)',
+                    borderWidth: 1
+                }}]
+            }},
+            options: {{
+                ...chartConfig,
+                scales: {{
+                    ...chartConfig.scales,
+                    y: {{
+                        ...chartConfig.scales.y,
+                        suggestedMax: 10
+                    }}
+                }}
+            }}
+        }});
+
+        // Function to update charts
+        function updateCharts() {{
+            fetch('/api/current-stats')
+                .then(response => response.json())
+                .then(data => {{
+                    if (data.error) {{
+                        console.error('API Error:', data.error);
+                        return;
+                    }}
+                    
+                    // Add new data point
+                    const timestamp = data.timestamp;
+                    
+                    // Update latency chart
+                    latencyChart.data.labels.push(timestamp);
+                    latencyChart.data.datasets[0].data.push(data.latency);
+                    
+                    // Update speed chart
+                    speedChart.data.labels.push(timestamp);
+                    speedChart.data.datasets[0].data.push(data.download_mbps);
+                    speedChart.data.datasets[1].data.push(data.upload_mbps);
+                    
+                    // Update quality chart
+                    qualityChart.data.labels.push(timestamp);
+                    qualityChart.data.datasets[0].data.push(data.quality_score);
+                    
+                    // Update obstruction chart
+                    obstructionChart.data.labels.push(timestamp);
+                    obstructionChart.data.datasets[0].data.push(data.obstruction_pct);
+                    
+                    // Keep only last 50 data points
+                    const maxPoints = 50;
+                    [latencyChart, speedChart, qualityChart, obstructionChart].forEach(chart => {{
+                        if (chart.data.labels.length > maxPoints) {{
+                            chart.data.labels.shift();
+                            chart.data.datasets.forEach(dataset => dataset.data.shift());
+                        }}
+                        chart.update('none'); // Update without animation
+                    }});
+                }})
+                .catch(error => console.error('Error updating charts:', error));
+        }}
+
+        // Initial chart update
+        updateCharts();
+        
+        // Update charts every 5 seconds
+        setInterval(updateCharts, 5000);
+        
+        // Refresh page every 5 minutes to prevent memory leaks
+        setTimeout(function(){{ location.reload(); }}, 300000);
         </script>
         </body>
         </html>
