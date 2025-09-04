@@ -44,7 +44,7 @@ A comprehensive real-time monitoring application for your Starlink dish, built w
 
 1. **Clone and run:**
 ```bash
-git clone <repository-url>
+git clone https://github.com/yourusername/starlink-monitor
 cd starlink-monitor
 docker-compose up --build -d
 ```
@@ -93,6 +93,9 @@ The Starlink API reports **actual data throughput** at any moment, not maximum c
 - **Flask web server** for the dashboard interface
 - **starlink-grpc-tools** for dish communication  
 - **Bulk history API** for actual speed measurements
+- **SQLite database** for persistent data storage (speed tests, historical metrics, outage tracking)
+- **Background data collector** for continuous monitoring and analytics
+- **Multi-method speed test engine** with automated scheduling
 - **Docker containerization** for easy deployment
 
 ## Monitoring Data
@@ -149,7 +152,8 @@ docker-compose up --build -d
 ## Development
 
 The monitor uses live volume mounts for development:
-- Edit files in `src/` or `temp3/` 
+- Edit files in `src/` (main application code) or `temp3/` (starlink-grpc-tools integration)
+- The `temp3/` directory contains the working starlink-grpc implementation
 - Changes reflect immediately (no rebuild needed)
 - Just refresh browser after saving
 

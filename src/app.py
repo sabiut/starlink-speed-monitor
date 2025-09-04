@@ -943,6 +943,10 @@ def speedtest_interface():
                             <span class="nav-icon">📈</span>
                             <span class="nav-text">Analytics</span>
                         </a>
+                        <a href="/advanced" class="nav-link">
+                            <span class="nav-icon">🔬</span>
+                            <span class="nav-text">Advanced</span>
+                        </a>
                     </div>
                 </nav>
                 
@@ -1589,6 +1593,10 @@ def analytics():
                     <a href="/analytics" class="nav-link active">
                         <span class="nav-icon">📈</span>
                         <span class="nav-text">Analytics</span>
+                    </a>
+                    <a href="/advanced" class="nav-link">
+                        <span class="nav-icon">🔬</span>
+                        <span class="nav-text">Advanced</span>
                     </a>
                 </div>
             </nav>
@@ -2769,6 +2777,10 @@ def index():
                         <span class="nav-icon">📈</span>
                         <span class="nav-text">Analytics</span>
                     </a>
+                    <a href="/advanced" class="nav-link">
+                        <span class="nav-icon">🔬</span>
+                        <span class="nav-text">Advanced</span>
+                    </a>
                 </div>
             </nav>
             
@@ -3094,6 +3106,520 @@ def index():
         </body>
         </html>
         """
+
+@app.route('/advanced')
+def advanced_monitoring():
+    """Advanced Monitoring Dashboard"""
+    try:
+        return f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>🔬 Advanced Monitoring - Starlink Monitor</title>
+            <meta http-equiv="refresh" content="30">
+            <style>
+                * {{
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }}
+                
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: #333;
+                    min-height: 100vh;
+                    padding: 20px;
+                }}
+                
+                .container {{
+                    max-width: 1400px;
+                    margin: 0 auto;
+                    background: rgba(255, 255, 255, 0.95);
+                    border-radius: 20px;
+                    padding: 30px;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+                }}
+                
+                h1 {{
+                    text-align: center;
+                    color: #2c3e50;
+                    margin-bottom: 30px;
+                    font-size: 2.5em;
+                    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }}
+                
+                /* Navigation Styles */
+                .main-nav {{
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    background: rgba(255, 255, 255, 0.9);
+                    border-radius: 15px;
+                    padding: 15px 25px;
+                    margin: 25px 0;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+                    backdrop-filter: blur(10px);
+                }}
+                
+                .nav-brand {{
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    font-weight: 600;
+                    color: #2c3e50;
+                }}
+                
+                .nav-logo {{
+                    font-size: 1.5em;
+                }}
+                
+                .nav-links {{
+                    display: flex;
+                    gap: 5px;
+                }}
+                
+                .nav-link {{
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 12px 20px;
+                    text-decoration: none;
+                    color: #666;
+                    border-radius: 10px;
+                    transition: all 0.3s ease;
+                    font-weight: 500;
+                }}
+                
+                .nav-link:hover {{
+                    background: rgba(103, 126, 234, 0.1);
+                    color: #667eea;
+                    transform: translateY(-1px);
+                }}
+                
+                .nav-link.active {{
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    color: white;
+                    box-shadow: 0 4px 15px rgba(103, 126, 234, 0.3);
+                }}
+                
+                .nav-icon {{
+                    font-size: 1.1em;
+                }}
+                
+                /* Advanced Monitoring Styles */
+                .advanced-grid {{
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+                    gap: 25px;
+                    margin: 30px 0;
+                }}
+                
+                .advanced-card {{
+                    background: rgba(255, 255, 255, 0.9);
+                    border-radius: 15px;
+                    padding: 25px;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+                    backdrop-filter: blur(10px);
+                    transition: transform 0.3s ease;
+                }}
+                
+                .advanced-card:hover {{
+                    transform: translateY(-2px);
+                }}
+                
+                .advanced-card h3 {{
+                    color: #2c3e50;
+                    margin-bottom: 20px;
+                    font-size: 1.3em;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }}
+                
+                .loading {{
+                    text-align: center;
+                    color: #666;
+                    font-style: italic;
+                    padding: 20px;
+                }}
+                
+                .error {{
+                    color: #e74c3c;
+                    background: rgba(231, 76, 60, 0.1);
+                    padding: 15px;
+                    border-radius: 8px;
+                    border-left: 4px solid #e74c3c;
+                }}
+                
+                .info-notice {{
+                    background: rgba(52, 152, 219, 0.1);
+                    border-left: 4px solid #3498db;
+                    padding: 15px;
+                    margin: 20px 0;
+                    border-radius: 8px;
+                    color: #2980b9;
+                }}
+                
+                .weather-setup {{
+                    background: rgba(241, 196, 15, 0.1);
+                    border-left: 4px solid #f1c40f;
+                    padding: 20px;
+                    margin: 20px 0;
+                    border-radius: 8px;
+                    color: #f39c12;
+                }}
+                
+                .setup-code {{
+                    background: rgba(0,0,0,0.1);
+                    padding: 10px;
+                    border-radius: 5px;
+                    font-family: monospace;
+                    margin: 10px 0;
+                    font-size: 0.9em;
+                }}
+                
+                /* Responsive */
+                @media (max-width: 768px) {{
+                    body {{ padding: 10px; }}
+                    .container {{ padding: 20px; }}
+                    h1 {{ font-size: 2em; }}
+                    .nav-links {{ flex-wrap: wrap; gap: 5px; }}
+                    .nav-text {{ display: none; }}
+                    .advanced-grid {{ grid-template-columns: 1fr; }}
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🔬 Advanced Monitoring</h1>
+                
+                <nav class="main-nav">
+                    <div class="nav-brand">
+                        <span class="nav-logo">🛰️</span>
+                        <span class="nav-title">Starlink Monitor</span>
+                    </div>
+                    <div class="nav-links">
+                        <a href="/" class="nav-link">
+                            <span class="nav-icon">📊</span>
+                            <span class="nav-text">Live Monitor</span>
+                        </a>
+                        <a href="/speedtest" class="nav-link">
+                            <span class="nav-icon">⚡</span>
+                            <span class="nav-text">Speed Test</span>
+                        </a>
+                        <a href="/analytics" class="nav-link">
+                            <span class="nav-icon">📈</span>
+                            <span class="nav-text">Analytics</span>
+                        </a>
+                        <a href="/advanced" class="nav-link active">
+                            <span class="nav-icon">🔬</span>
+                            <span class="nav-text">Advanced</span>
+                        </a>
+                    </div>
+                </nav>
+                
+                <div class="info-notice">
+                    <strong>🔬 Advanced Monitoring:</strong> Deep insights into outages, weather correlation, and peak performance patterns.
+                </div>
+                
+                <div class="weather-setup">
+                    <strong>⚡ Enable Weather Correlation:</strong> To get weather impact analysis, add these to your docker-compose.yml:
+                    <div class="setup-code">
+environment:<br>
+&nbsp;&nbsp;- WEATHER_API_KEY=your_openweathermap_key<br>
+&nbsp;&nbsp;- STARLINK_LATITUDE=your_latitude<br>
+&nbsp;&nbsp;- STARLINK_LONGITUDE=your_longitude
+                    </div>
+                    Get a free API key at <a href="https://openweathermap.org/api" target="_blank" style="color: #e67e22;">OpenWeatherMap</a>
+                </div>
+                
+                <div class="advanced-grid">
+                    <div class="advanced-card">
+                        <h3>🚨 Outage Analysis</h3>
+                        <div id="outageAnalysis" class="loading">Loading outage data...</div>
+                    </div>
+                    
+                    <div class="advanced-card">
+                        <h3>🌤️ Weather Impact</h3>
+                        <div id="weatherImpact" class="loading">Loading weather correlation...</div>
+                    </div>
+                    
+                    <div class="advanced-card">
+                        <h3>⚡ Peak Performance</h3>
+                        <div id="peakAnalysis" class="loading">Loading performance patterns...</div>
+                    </div>
+                    
+                    <div class="advanced-card">
+                        <h3>🔮 Weather Forecast</h3>
+                        <div id="weatherForecast" class="loading">Loading weather forecast...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <script>
+                // Load advanced monitoring data
+                async function loadAdvancedData() {{
+                    try {{
+                        // Load outage analysis
+                        const outageResponse = await fetch('/api/advanced/outage-analysis?days=30');
+                        const outageData = await outageResponse.json();
+                        displayOutageAnalysis(outageData);
+                        
+                        // Load weather impact
+                        const weatherResponse = await fetch('/api/advanced/weather-impact?days=7');
+                        const weatherData = await weatherResponse.json();
+                        displayWeatherImpact(weatherData);
+                        
+                        // Load peak analysis
+                        const peakResponse = await fetch('/api/advanced/peak-analysis?days=7');
+                        const peakData = await peakResponse.json();
+                        displayPeakAnalysis(peakData);
+                        
+                        // Load weather forecast
+                        const forecastResponse = await fetch('/api/advanced/weather-forecast');
+                        const forecastData = await forecastResponse.json();
+                        displayWeatherForecast(forecastData);
+                        
+                    }} catch (error) {{
+                        console.error('Error loading advanced data:', error);
+                    }}
+                }}
+                
+                function displayOutageAnalysis(data) {{
+                    const container = document.getElementById('outageAnalysis');
+                    if (data.error) {{
+                        container.innerHTML = `<div class="error">Error: ${{data.error}}</div>`;
+                        return;
+                    }}
+                    
+                    const stats = data.statistics || {{}};
+                    container.innerHTML = `
+                        <div><strong>Total Outages:</strong> ${{stats.total_outages || 0}}</div>
+                        <div><strong>Total Duration:</strong> ${{Math.round((stats.total_duration_seconds || 0) / 60)}} minutes</div>
+                        <div><strong>Average Duration:</strong> ${{Math.round((stats.avg_duration_seconds || 0) / 60)}} minutes</div>
+                        <div><strong>Longest Outage:</strong> ${{Math.round((stats.longest_duration_seconds || 0) / 60)}} minutes</div>
+                        ${{stats.critical_outages ? `<div style="color: #e74c3c;"><strong>Critical Outages:</strong> ${{stats.critical_outages}}</div>` : ''}}
+                    `;
+                }}
+                
+                function displayWeatherImpact(data) {{
+                    const container = document.getElementById('weatherImpact');
+                    if (data.error) {{
+                        container.innerHTML = `<div class="error">Weather service not configured</div>`;
+                        return;
+                    }}
+                    
+                    const insights = data.weather_insights || [];
+                    if (insights.length === 0) {{
+                        container.innerHTML = '<div>No weather correlation data available yet</div>';
+                        return;
+                    }}
+                    
+                    const impactHTML = insights.map(insight => `
+                        <div style="margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 5px;">
+                            <strong>${{insight.condition}}:</strong> 
+                            <span style="color: ${{insight.impact === 'negative' ? '#e74c3c' : '#27ae60'}}">
+                                ${{insight.quality_score}}% quality
+                            </span>
+                            <br><small>${{insight.recommendation}}</small>
+                        </div>
+                    `).join('');
+                    
+                    container.innerHTML = impactHTML || '<div>Analyzing weather patterns...</div>';
+                }}
+                
+                function displayPeakAnalysis(data) {{
+                    const container = document.getElementById('peakAnalysis');
+                    if (data.error) {{
+                        container.innerHTML = `<div class="error">Error: ${{data.error}}</div>`;
+                        return;
+                    }}
+                    
+                    const bestHours = data.best_hours || [];
+                    const worstHours = data.worst_hours || [];
+                    
+                    let html = '';
+                    if (bestHours.length > 0) {{
+                        const best = bestHours[0];
+                        html += `<div style="color: #27ae60;"><strong>Best Hour:</strong> ${{best.hour}}:00 (${{Math.round(best.avg_quality || 0)}}% quality)</div>`;
+                    }}
+                    if (worstHours.length > 0) {{
+                        const worst = worstHours[0];
+                        html += `<div style="color: #e74c3c;"><strong>Worst Hour:</strong> ${{worst.hour}}:00 (${{Math.round(worst.avg_quality || 0)}}% quality)</div>`;
+                    }}
+                    
+                    const weekdayAvg = data.weekday_avg_quality || 0;
+                    const weekendAvg = data.weekend_avg_quality || 0;
+                    if (weekdayAvg > 0 || weekendAvg > 0) {{
+                        html += `<div style="margin-top: 15px;"><strong>Weekday vs Weekend:</strong></div>`;
+                        html += `<div>Weekdays: ${{Math.round(weekdayAvg)}}% quality</div>`;
+                        html += `<div>Weekends: ${{Math.round(weekendAvg)}}% quality</div>`;
+                    }}
+                    
+                    container.innerHTML = html || '<div>Analyzing performance patterns...</div>';
+                }}
+                
+                function displayWeatherForecast(data) {{
+                    const container = document.getElementById('weatherForecast');
+                    if (data.error) {{
+                        container.innerHTML = `<div class="error">Weather forecast not available</div>`;
+                        return;
+                    }}
+                    
+                    const forecast = data.forecast || [];
+                    const warnings = data.warnings || [];
+                    
+                    let html = `<div><strong>Impact Prediction:</strong> ${{data.impact_prediction || 'Good conditions expected'}}</div>`;
+                    
+                    if (warnings.length > 0) {{
+                        html += '<div style="margin-top: 15px;"><strong>Warnings:</strong></div>';
+                        warnings.forEach(warning => {{
+                            html += `<div style="color: #e67e22; margin: 5px 0;"><strong>${{warning.time}}:</strong> ${{warning.warning}}</div>`;
+                        }});
+                    }}
+                    
+                    if (forecast.length > 0) {{
+                        const next = forecast[0];
+                        html += `<div style="margin-top: 15px;"><strong>Current:</strong> ${{next.weather_condition || 'Unknown'}} ${{Math.round(next.temperature_c || 0)}}°C</div>`;
+                    }}
+                    
+                    container.innerHTML = html || '<div>Weather forecast not available</div>';
+                }}
+                
+                // Load data on page load
+                loadAdvancedData();
+                
+                // Refresh data every 30 seconds
+                setInterval(loadAdvancedData, 30000);
+            </script>
+        </body>
+        </html>
+        """
+    except Exception as e:
+        return f"<h1>Error loading Advanced Monitoring dashboard: {str(e)}</h1>", 500
+
+# Advanced Monitoring API Endpoints
+@app.route('/api/advanced/outage-analysis')
+def outage_analysis():
+    """Get comprehensive outage analysis"""
+    try:
+        days = request.args.get('days', 30, type=int)
+        analysis = db.get_outage_analysis(days)
+        return jsonify(analysis)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/advanced/weather-impact')
+def weather_impact():
+    """Get weather impact analysis on performance"""
+    try:
+        days = request.args.get('days', 7, type=int)
+        
+        # Get weather service from data collector if available
+        weather_service = None
+        if collector and hasattr(collector, 'weather_service'):
+            weather_service = collector.weather_service
+        
+        if weather_service:
+            impact_analysis = weather_service.get_weather_impact_analysis(days)
+            return jsonify(impact_analysis)
+        else:
+            return jsonify({
+                'analysis_period': days,
+                'weather_insights': [],
+                'error': 'Weather service not available. Set WEATHER_API_KEY, STARLINK_LATITUDE, and STARLINK_LONGITUDE environment variables.'
+            })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/advanced/peak-analysis')
+def peak_analysis():
+    """Get peak usage pattern analysis"""
+    try:
+        days = request.args.get('days', 7, type=int)
+        patterns = db.analyze_peak_usage_patterns(days)
+        return jsonify(patterns)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/advanced/weather-forecast')
+def weather_forecast():
+    """Get weather forecast and performance impact prediction"""
+    try:
+        # Get weather service from data collector if available
+        weather_service = None
+        if collector and hasattr(collector, 'weather_service'):
+            weather_service = collector.weather_service
+        
+        if weather_service:
+            forecast = weather_service.get_weather_forecast_impact()
+            return jsonify(forecast)
+        else:
+            return jsonify({
+                'forecast': [],
+                'impact_prediction': 'Weather service not available. Set WEATHER_API_KEY, STARLINK_LATITUDE, and STARLINK_LONGITUDE environment variables.',
+                'warnings': []
+            })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/advanced/performance-insights')
+def performance_insights():
+    """Get combined advanced performance insights"""
+    try:
+        days = request.args.get('days', 7, type=int)
+        
+        # Gather all advanced insights
+        insights = {
+            'analysis_period': days,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        # Get outage analysis
+        try:
+            insights['outage_analysis'] = db.get_outage_analysis(days)
+        except Exception as e:
+            insights['outage_analysis'] = {'error': str(e)}
+        
+        # Get peak usage patterns
+        try:
+            insights['peak_patterns'] = db.analyze_peak_usage_patterns(days)
+        except Exception as e:
+            insights['peak_patterns'] = {'error': str(e)}
+        
+        # Get weather impact if available
+        weather_service = None
+        if collector and hasattr(collector, 'weather_service'):
+            weather_service = collector.weather_service
+        
+        if weather_service:
+            try:
+                insights['weather_impact'] = weather_service.get_weather_impact_analysis(days)
+                insights['weather_forecast'] = weather_service.get_weather_forecast_impact()
+            except Exception as e:
+                insights['weather_impact'] = {'error': str(e)}
+                insights['weather_forecast'] = {'error': str(e)}
+        else:
+            insights['weather_impact'] = {
+                'analysis_period': days,
+                'weather_insights': [],
+                'note': 'Weather service not configured'
+            }
+            insights['weather_forecast'] = {
+                'forecast': [],
+                'impact_prediction': 'Weather service not configured'
+            }
+        
+        # Get data collector status for context
+        if collector:
+            insights['collector_status'] = collector.get_status()
+        
+        return jsonify(insights)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)

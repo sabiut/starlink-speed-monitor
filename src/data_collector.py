@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 import logging
 from database import StarlinkDatabase
+from weather_service import WeatherService
 import sys
 import os
 
@@ -26,6 +27,23 @@ class DataCollector:
         self.thread: Optional[threading.Thread] = None
         self.last_connection_state = True
         self.outage_start_time: Optional[datetime] = None
+        
+        # Enhanced outage tracking
+        self.consecutive_failures = 0
+        self.outage_severity_threshold = {
+            'minor': 60,    # < 1 minute
+            'major': 300,   # 1-5 minutes  
+            'critical': 1800  # > 30 minutes
+        }
+        
+        # Weather service integration
+        self.weather_service = WeatherService(db)
+        self.weather_collection_counter = 0
+        self.weather_collection_interval = 10  # Collect weather every 10th cycle (10 minutes if collecting every minute)
+        
+        # Performance analysis
+        self.performance_analysis_counter = 0
+        self.performance_analysis_interval = 60  # Run analysis every hour
         
         # Setup logging
         logging.basicConfig(level=logging.INFO)
@@ -162,16 +180,45 @@ class DataCollector:
             # Check for connection issues
             connection_ok = latency_ms > 0 and latency_ms < 2000  # Reasonable latency range
             
-            # Handle outage detection
+            # Enhanced outage detection
             if not connection_ok and self.last_connection_state:
                 # Connection just went down
                 self.outage_start_time = timestamp
+                current_weather = self.weather_service.get_current_weather()
+                weather_conditions = None
+                if current_weather:
+                    weather_conditions = f"{current_weather.get('weather_condition')} {current_weather.get('temperature_c')}°C"
+                
                 self.logger.warning("Connection outage detected")
+                
             elif connection_ok and not self.last_connection_state and self.outage_start_time:
                 # Connection just came back up
                 outage_duration = (timestamp - self.outage_start_time).total_seconds()
-                self.db.record_outage(self.outage_start_time, timestamp, "Connection restored")
-                self.logger.info(f"Connection restored after {outage_duration:.0f} seconds")
+                
+                # Determine severity based on duration
+                if outage_duration >= self.outage_severity_threshold['critical']:
+                    severity = 'critical'
+                elif outage_duration >= self.outage_severity_threshold['major']:
+                    severity = 'major'
+                else:
+                    severity = 'minor'
+                
+                # Get current weather for context
+                current_weather = self.weather_service.get_current_weather()
+                weather_conditions = None
+                if current_weather:
+                    weather_conditions = f"{current_weather.get('weather_condition')} {current_weather.get('temperature_c')}°C"
+                
+                # Record enhanced outage
+                self.db.record_enhanced_outage(
+                    start_time=self.outage_start_time,
+                    end_time=timestamp,
+                    reason="Connection restored",
+                    severity=severity,
+                    weather_conditions=weather_conditions
+                )
+                
+                self.logger.info(f"Connection restored after {outage_duration:.0f} seconds (severity: {severity})")
                 self.outage_start_time = None
             
             self.last_connection_state = connection_ok
@@ -219,12 +266,30 @@ class DataCollector:
                 self.last_connection_state = False
     
     def _collection_loop(self):
-        """Main data collection loop"""
-        self.logger.info(f"Starting data collection (interval: {self.collection_interval}s)")
+        """Enhanced data collection loop with weather and performance analysis"""
+        self.logger.info(f"Starting enhanced data collection (interval: {self.collection_interval}s)")
         
         while self.running:
             try:
+                # Collect main data point
                 self.collect_data_point()
+                
+                # Collect weather data periodically
+                self.weather_collection_counter += 1
+                if self.weather_collection_counter >= self.weather_collection_interval:
+                    self.weather_collection_counter = 0
+                    try:
+                        weather_data = self.weather_service.collect_and_store_weather()
+                        if weather_data:
+                            self.logger.debug(f"Weather collected: {weather_data.get('weather_condition')}")
+                    except Exception as e:
+                        self.logger.warning(f"Weather collection failed: {e}")
+                
+                # Run performance analysis periodically
+                self.performance_analysis_counter += 1
+                if self.performance_analysis_counter >= self.performance_analysis_interval:
+                    self.performance_analysis_counter = 0
+                    self._run_performance_analysis()
                 
                 # Calculate daily stats periodically (every hour)
                 if datetime.now().minute == 0:
@@ -232,6 +297,15 @@ class DataCollector:
                 
             except Exception as e:
                 self.logger.error(f"Error in collection loop: {e}")
+                self.consecutive_failures += 1
+                
+                # If we have too many consecutive failures, it might be a major outage
+                if self.consecutive_failures > 5 and not self.outage_start_time:
+                    self.outage_start_time = datetime.now()
+                    self.last_connection_state = False
+                    self.logger.warning("Multiple collection failures - possible major outage")
+            else:
+                self.consecutive_failures = 0
             
             # Sleep for the specified interval
             for _ in range(self.collection_interval):
@@ -239,7 +313,7 @@ class DataCollector:
                     break
                 time.sleep(1)
         
-        self.logger.info("Data collection stopped")
+        self.logger.info("Enhanced data collection stopped")
     
     def start(self):
         """Start the background data collection"""
@@ -267,12 +341,65 @@ class DataCollector:
         
         self.logger.info("Data collector stopped")
     
+    def _run_performance_analysis(self):
+        """Run periodic performance analysis and store insights"""
+        try:
+            self.logger.debug("Running performance analysis...")
+            
+            # Get peak usage patterns
+            patterns = self.db.analyze_peak_usage_patterns(days=7)
+            
+            # Log interesting findings
+            if patterns.get('best_hours'):
+                best_hour = patterns['best_hours'][0]
+                self.logger.info(f"Best performance hour: {best_hour.get('hour')}:00 "
+                               f"(Quality: {best_hour.get('avg_quality', 0):.0f}%)")
+            
+            if patterns.get('worst_hours'):
+                worst_hour = patterns['worst_hours'][0]
+                if worst_hour.get('avg_quality', 100) < 60:
+                    self.logger.warning(f"Poor performance hour: {worst_hour.get('hour')}:00 "
+                                      f"(Quality: {worst_hour.get('avg_quality', 0):.0f}%)")
+            
+            # Store hourly performance analysis
+            current_hour = datetime.now().hour
+            current_date = datetime.now().date()
+            
+            if patterns.get('hourly_patterns'):
+                for hour_data in patterns['hourly_patterns']:
+                    if hour_data.get('hour') == current_hour and hour_data.get('sample_count', 0) > 5:
+                        # Get weather correlation if available
+                        weather_data = self.weather_service.get_current_weather()
+                        weather_correlation = None
+                        if weather_data:
+                            weather_correlation = f"{weather_data.get('weather_condition')} {weather_data.get('temperature_c')}°C"
+                        
+                        self.db.store_performance_analysis(
+                            analysis_date=current_date,
+                            hour_of_day=current_hour,
+                            avg_download=hour_data.get('avg_download', 0),
+                            avg_upload=hour_data.get('avg_upload', 0),
+                            avg_latency=hour_data.get('avg_latency', 0),
+                            avg_quality=hour_data.get('avg_quality', 0),
+                            sample_count=hour_data.get('sample_count', 0),
+                            weather_correlation=weather_correlation
+                        )
+                        break
+            
+        except Exception as e:
+            self.logger.error(f"Performance analysis failed: {e}")
+    
     def get_status(self) -> dict:
-        """Get collector status"""
+        """Get enhanced collector status"""
         return {
             'running': self.running,
             'collection_interval': self.collection_interval,
             'last_connection_state': self.last_connection_state,
             'outage_in_progress': self.outage_start_time is not None,
-            'outage_start_time': self.outage_start_time.isoformat() if self.outage_start_time else None
+            'outage_start_time': self.outage_start_time.isoformat() if self.outage_start_time else None,
+            'consecutive_failures': self.consecutive_failures,
+            'weather_enabled': bool(self.weather_service.api_key and 
+                                  (self.weather_service.latitude != 0 or self.weather_service.longitude != 0)),
+            'next_weather_collection': self.weather_collection_interval - self.weather_collection_counter,
+            'next_performance_analysis': self.performance_analysis_interval - self.performance_analysis_counter
         }

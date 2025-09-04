@@ -41,7 +41,38 @@ class StarlinkDatabase:
                     end_time DATETIME,
                     duration_seconds INTEGER,
                     reason TEXT,
+                    severity TEXT DEFAULT 'minor',
+                    affected_services TEXT,
+                    recovery_method TEXT,
+                    weather_conditions TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+                
+                CREATE TABLE IF NOT EXISTS weather_data (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp DATETIME NOT NULL,
+                    temperature_c REAL,
+                    humidity_pct REAL,
+                    wind_speed_kmh REAL,
+                    wind_direction TEXT,
+                    weather_condition TEXT,
+                    precipitation_mm REAL,
+                    visibility_km REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+                
+                CREATE TABLE IF NOT EXISTS performance_analysis (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    analysis_date DATE NOT NULL,
+                    hour_of_day INTEGER NOT NULL,
+                    avg_download_mbps REAL,
+                    avg_upload_mbps REAL,
+                    avg_latency_ms REAL,
+                    avg_quality_score REAL,
+                    sample_count INTEGER,
+                    weather_correlation TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(analysis_date, hour_of_day)
                 );
                 
                 CREATE TABLE IF NOT EXISTS daily_stats (
@@ -706,3 +737,148 @@ class StarlinkDatabase:
             """, (start_time,))
             
             return [dict(row) for row in cursor.fetchall()]
+    
+    # Advanced Monitoring Methods
+    
+    def record_enhanced_outage(self, start_time: datetime, end_time: datetime = None, 
+                              reason: str = None, severity: str = "minor", 
+                              affected_services: str = None, weather_conditions: str = None):
+        """Record an outage with enhanced details"""
+        with self.get_connection() as conn:
+            duration = None
+            if end_time:
+                duration = int((end_time - start_time).total_seconds())
+            
+            conn.execute("""
+                INSERT INTO outages (start_time, end_time, duration_seconds, reason, 
+                                   severity, affected_services, weather_conditions)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (start_time, end_time, duration, reason, severity, affected_services, weather_conditions))
+    
+    def get_outage_analysis(self, days: int = 30) -> Dict:
+        """Get comprehensive outage analysis"""
+        start_time = datetime.now() - timedelta(days=days)
+        
+        with self.get_connection() as conn:
+            # Get outage statistics
+            cursor = conn.execute("""
+                SELECT 
+                    COUNT(*) as total_outages,
+                    AVG(duration_seconds) as avg_duration,
+                    MAX(duration_seconds) as max_duration,
+                    SUM(duration_seconds) as total_downtime,
+                    COUNT(CASE WHEN severity = "critical" THEN 1 END) as critical_outages,
+                    COUNT(CASE WHEN severity = "major" THEN 1 END) as major_outages,
+                    COUNT(CASE WHEN severity = "minor" THEN 1 END) as minor_outages
+                FROM outages 
+                WHERE start_time >= ?
+            """, (start_time,))
+            
+            stats = dict(cursor.fetchone())
+            
+            # Get outages by hour of day
+            cursor = conn.execute("""
+                SELECT 
+                    CAST(strftime("%H", start_time) as INTEGER) as hour,
+                    COUNT(*) as outage_count,
+                    AVG(duration_seconds) as avg_duration
+                FROM outages 
+                WHERE start_time >= ?
+                GROUP BY hour
+                ORDER BY hour
+            """, (start_time,))
+            
+            hourly_pattern = [dict(row) for row in cursor.fetchall()]
+            
+            # Get recent outages
+            cursor = conn.execute("""
+                SELECT * FROM outages 
+                WHERE start_time >= ?
+                ORDER BY start_time DESC
+                LIMIT 10
+            """, (start_time,))
+            
+            recent_outages = [dict(row) for row in cursor.fetchall()]
+            
+            return {
+                "statistics": stats,
+                "hourly_pattern": hourly_pattern,
+                "recent_outages": recent_outages
+            }
+    
+    def store_weather_data(self, timestamp: datetime, temperature_c: float = None,
+                          humidity_pct: float = None, wind_speed_kmh: float = None,
+                          wind_direction: str = None, weather_condition: str = None,
+                          precipitation_mm: float = None, visibility_km: float = None):
+        """Store weather data"""
+        with self.get_connection() as conn:
+            conn.execute("""
+                INSERT INTO weather_data (timestamp, temperature_c, humidity_pct, wind_speed_kmh,
+                                        wind_direction, weather_condition, precipitation_mm, visibility_km)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (timestamp, temperature_c, humidity_pct, wind_speed_kmh,
+                  wind_direction, weather_condition, precipitation_mm, visibility_km))
+    
+    def analyze_peak_usage_patterns(self, days: int = 30) -> Dict:
+        """Analyze peak usage patterns and performance by hour"""
+        start_time = datetime.now() - timedelta(days=days)
+        
+        with self.get_connection() as conn:
+            # Get hourly performance patterns
+            cursor = conn.execute("""
+                SELECT 
+                    CAST(strftime("%H", timestamp) as INTEGER) as hour,
+                    AVG(download_mbps) as avg_download,
+                    AVG(upload_mbps) as avg_upload,
+                    AVG(latency_ms) as avg_latency,
+                    AVG(quality_score) as avg_quality,
+                    COUNT(*) as sample_count,
+                    MAX(download_mbps) as peak_download,
+                    MIN(download_mbps) as min_download
+                FROM metrics 
+                WHERE timestamp >= ?
+                GROUP BY hour
+                ORDER BY hour
+            """, (start_time,))
+            
+            hourly_patterns = [dict(row) for row in cursor.fetchall()]
+            
+            # Get best and worst performance hours
+            cursor = conn.execute("""
+                SELECT 
+                    CAST(strftime("%H", timestamp) as INTEGER) as hour,
+                    AVG(quality_score) as avg_quality
+                FROM metrics 
+                WHERE timestamp >= ?
+                GROUP BY hour
+                ORDER BY avg_quality DESC
+            """, (start_time,))
+            
+            performance_ranking = [dict(row) for row in cursor.fetchall()]
+            
+            # Get daily patterns (weekday vs weekend)
+            cursor = conn.execute("""
+                SELECT 
+                    CASE 
+                        WHEN CAST(strftime("%w", timestamp) as INTEGER) IN (0, 6) THEN "Weekend"
+                        ELSE "Weekday"
+                    END as day_type,
+                    AVG(download_mbps) as avg_download,
+                    AVG(upload_mbps) as avg_upload,
+                    AVG(latency_ms) as avg_latency,
+                    AVG(quality_score) as avg_quality,
+                    COUNT(*) as sample_count
+                FROM metrics 
+                WHERE timestamp >= ?
+                GROUP BY day_type
+            """, (start_time,))
+            
+            daily_patterns = [dict(row) for row in cursor.fetchall()]
+            
+            return {
+                "hourly_patterns": hourly_patterns,
+                "performance_ranking": performance_ranking,
+                "daily_patterns": daily_patterns,
+                "best_hours": performance_ranking[:3] if performance_ranking else [],
+                "worst_hours": performance_ranking[-3:] if performance_ranking else []
+            }

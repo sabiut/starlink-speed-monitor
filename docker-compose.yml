@@ -4,7 +4,6 @@ services:
   starlink-monitor:
     build: .
     container_name: starlink-monitor
-    network_mode: host
     restart: unless-stopped
     environment:
       - FLASK_HOST=0.0.0.0
@@ -17,6 +16,8 @@ services:
       # Or set coordinates:
       # - STARLINK_LATITUDE=37.7749
       # - STARLINK_LONGITUDE=-122.4194
+    ports:
+      - "8080:5000"
     volumes:
       # Persistent data storage for SQLite database
       - ./data:/app/data
