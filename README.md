@@ -37,8 +37,25 @@ A comprehensive real-time monitoring application for your Starlink dish, built w
 
 ## Prerequisites
 
+### System Requirements
 - Docker and Docker Compose installed
-- Starlink dish accessible on your network (typically at 192.168.100.1)
+
+### Network Requirements
+- **Must be connected to Starlink network** - This application only works when your machine is on the same network as your Starlink dish
+- **Starlink dish must be accessible** at 192.168.100.1 (default Starlink router IP)
+- **Firewall considerations** - If running behind a corporate firewall or VPN, ensure your machine can ping the Starlink router:
+  ```bash
+  ping 192.168.100.1
+  ```
+  If ping fails, the monitor cannot connect to your dish
+
+### Network Topology
+The application must run on a device that can directly communicate with the Starlink dish. This means:
+- ✅ **Works**: Home network connected to Starlink
+- ✅ **Works**: Device connected to Starlink WiFi  
+- ❌ **Won't work**: Corporate network routing through Starlink
+- ❌ **Won't work**: VPN blocking local network access
+- ❌ **Won't work**: Docker network isolation preventing dish access
 
 ## Quick Start
 
