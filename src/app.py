@@ -687,7 +687,7 @@ def speedtest_interface():
         return f"""
         <html>
         <head>
-            <title>🚀 Starlink Speed Test</title>
+            <title>Starlink Speed Test</title>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
@@ -922,29 +922,29 @@ def speedtest_interface():
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>🚀 Starlink Speed Test</h1>
+                    <h1>Starlink Speed Test</h1>
                 </div>
                 
                 <nav class="main-nav">
                     <div class="nav-brand">
-                        <span class="nav-logo">🛰️</span>
+                        <span class="nav-logo">Starlink</span>
                         <span class="nav-title">Starlink Monitor</span>
                     </div>
                     <div class="nav-links">
                         <a href="/" class="nav-link">
-                            <span class="nav-icon">📊</span>
+                            <span class="nav-icon">Monitor</span>
                             <span class="nav-text">Live Monitor</span>
                         </a>
                         <a href="/speedtest" class="nav-link active">
-                            <span class="nav-icon">⚡</span>
+                            <span class="nav-icon">Speed Test</span>
                             <span class="nav-text">Speed Test</span>
                         </a>
                         <a href="/analytics" class="nav-link">
-                            <span class="nav-icon">📈</span>
+                            <span class="nav-icon">Analytics</span>
                             <span class="nav-text">Analytics</span>
                         </a>
                         <a href="/advanced" class="nav-link">
-                            <span class="nav-icon">🔬</span>
+                            <span class="nav-icon">Advanced</span>
                             <span class="nav-text">Advanced</span>
                         </a>
                     </div>
@@ -953,11 +953,11 @@ def speedtest_interface():
                 <div class="test-section">
                     <h2>Run Speed Test</h2>
                     <p>Test your Starlink connection speed using our built-in speed test engine</p>
-                    <button id="runTestBtn" class="test-button" onclick="runSpeedTest()">🚀 Start Speed Test</button>
-                    <button class="test-button" onclick="window.open('https://fast.com', '_blank')">🌐 External Test (Fast.com)</button>
+                    <button id="runTestBtn" class="test-button" onclick="runSpeedTest()">Start Speed Test</button>
+                    <button class="test-button" onclick="window.open('https://fast.com', '_blank')">External Test (Fast.com)</button>
                     
                     <div id="testStatus" class="loading">
-                        <p>⏳ Running speed test... This may take 1-2 minutes</p>
+                        <p>Running speed test... This may take 1-2 minutes</p>
                         <div style="margin: 20px 0;">
                             <div style="background: #e5e7eb; border-radius: 10px; height: 6px; overflow: hidden;">
                                 <div id="progressBar" style="background: #667eea; height: 100%; width: 0%; transition: width 0.5s;"></div>
@@ -987,7 +987,7 @@ def speedtest_interface():
                 
                 <div class="results-section">
                     <div class="results-card">
-                        <h3>📊 Recent Test Results</h3>
+                        <h3>Recent Test Results</h3>
                         <table class="history-table">
                             <thead>
                                 <tr>
@@ -1124,11 +1124,11 @@ def speedtest_interface():
                     const status = document.getElementById('testStatus');
                     
                     button.disabled = false;
-                    button.textContent = '🚀 Start Speed Test';
+                    button.textContent = 'Start Speed Test';
                     
                     if (typeof result === 'object') {{
                         status.innerHTML = `
-                            <h3>✅ Test Complete!</h3>
+                            <h3>Test Complete!</h3>
                             <p><strong>Download:</strong> ${{result.download_mbps.toFixed(1)}} Mbps</p>
                             <p><strong>Upload:</strong> ${{result.upload_mbps.toFixed(1)}} Mbps</p>
                             <p><strong>Ping:</strong> ${{result.ping_ms.toFixed(0)}} ms</p>
@@ -1201,7 +1201,7 @@ def speedtest_interface():
         <head><title>Speed Test Error</title></head>
         <body style="font-family: Arial, sans-serif; margin: 40px;">
         <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            <h1 style="color: #ef4444;">⚠️ Speed Test Error</h1>
+            <h1 style="color: #ef4444;">Speed Test Error</h1>
             <p style="color: #666;">Unable to load speed test interface</p>
             <div style="background: #fee; padding: 15px; border-radius: 5px; margin: 20px 0;">
                 <strong>Error details:</strong><br>
@@ -1574,7 +1574,7 @@ def analytics():
         </head>
         <body>
         <div class="container">
-            <h1>📊 Starlink Analytics Dashboard</h1>
+            <h1>Starlink Analytics Dashboard</h1>
             
             <nav class="main-nav">
                 <div class="nav-brand">
@@ -1601,7 +1601,7 @@ def analytics():
                 </div>
             </nav>
             
-            <h2>📈 Summary Statistics</h2>
+            <h2>Summary Statistics</h2>
             <div class="summary-grid">
                 <div class="summary-card">
                     <div class="summary-title">Avg Download Speed</div>
@@ -1635,7 +1635,7 @@ def analytics():
                 </div>
             </div>
             
-            <h2>📊 Historical Trends</h2>
+            <h2>Historical Trends</h2>
             <div class="charts-grid">
                 <div class="chart-row">
                     <div class="chart-container">
@@ -1684,7 +1684,7 @@ def analytics():
                 </div>
             </div>
             
-            <h2>📋 Performance Reports</h2>
+            <h2>Performance Reports</h2>
             <div class="reports-section">
                 <div class="report-controls">
                     <select id="reportType">
@@ -1697,39 +1697,39 @@ def analytics():
                         <option value="60">Last 60 days</option>
                         <option value="90">Last 90 days</option>
                     </select>
-                    <button id="loadReports" class="refresh-btn">🔄 Load Reports</button>
+                    <button id="loadReports" class="refresh-btn">Load Reports</button>
                 </div>
                 <div id="reportsContainer" class="reports-container">
-                    <div class="loading">📊 Click "Load Reports" to view performance data</div>
+                    <div class="loading">Click "Load Reports" to view performance data</div>
                 </div>
             </div>
             
-            <h2>🔍 Advanced Analytics</h2>
+            <h2>Advanced Analytics</h2>
             <div class="analytics-section">
                 <div class="analytics-grid">
                     <div class="analytics-card">
-                        <h3>⏰ Day vs Night Performance</h3>
+                        <h3>Day vs Night Performance</h3>
                         <div id="dayNightComparison" class="comparison-data">
                             <div class="loading">Loading comparison...</div>
                         </div>
                     </div>
                     
                     <div class="analytics-card">
-                        <h3>🎯 Quality Distribution</h3>
+                        <h3>Quality Distribution</h3>
                         <div id="qualityDistribution" class="distribution-data">
                             <div class="loading">Loading distribution...</div>
                         </div>
                     </div>
                     
                     <div class="analytics-card">
-                        <h3>📊 Speed Consistency</h3>
+                        <h3>Speed Consistency</h3>
                         <div id="speedConsistency" class="consistency-data">
                             <div class="loading">Loading consistency...</div>
                         </div>
                     </div>
                     
                     <div class="analytics-card">
-                        <h3>⚡ Peak Performance Hours</h3>
+                        <h3>Peak Performance Hours</h3>
                         <div id="peakHours" class="peak-data">
                             <div class="loading">Loading peak hours...</div>
                         </div>
@@ -1737,18 +1737,18 @@ def analytics():
                 </div>
             </div>
             
-            <h2>🚀 Speed Test Analytics</h2>
+            <h2>Speed Test Analytics</h2>
             <div class="speedtest-section">
                 <div class="analytics-grid">
                     <div class="analytics-card">
-                        <h3>📊 Speed Test Summary</h3>
+                        <h3>Speed Test Summary</h3>
                         <div id="speedTestSummary" class="summary-data">
                             <div class="loading">Loading summary...</div>
                         </div>
                     </div>
                     
                     <div class="analytics-card">
-                        <h3>📈 Speed Test Trends</h3>
+                        <h3>Speed Test Trends</h3>
                         <div class="chart-container">
                             <canvas id="speedTestTrendChart" width="400" height="200"></canvas>
                         </div>
@@ -1756,22 +1756,22 @@ def analytics():
                 </div>
                 
                 <div class="analytics-card" style="margin-top: 20px;">
-                    <h3>🚀 Quick Speed Test</h3>
+                    <h3>Quick Speed Test</h3>
                     <div style="text-align: center; padding: 20px;">
                         <p>Run a speed test directly from the analytics dashboard</p>
-                        <a href="/speedtest" class="test-button" style="display: inline-block; text-decoration: none; padding: 12px 30px; background: #667eea; color: white; border-radius: 25px; margin: 10px;">🚀 Launch Speed Test Interface</a>
+                        <a href="/speedtest" class="test-button" style="display: inline-block; text-decoration: none; padding: 12px 30px; background: #667eea; color: white; border-radius: 25px; margin: 10px;">Launch Speed Test Interface</a>
                     </div>
                 </div>
             </div>
             
-            <h2>💡 Performance Insights</h2>
+            <h2>Performance Insights</h2>
             <div class="insights-section">
                 <div id="performanceInsights" class="insights-container">
                     <div class="loading">Loading insights...</div>
                 </div>
             </div>
             
-            <div id="loading" class="loading">📊 Loading analytics data...</div>
+            <div id="loading" class="loading">Loading analytics data...</div>
             
             <div style="text-align: center; margin-top: 30px; color: #666; font-size: 0.9em;">
                 Data collection started: {summary_30d.get('oldest_data', 'N/A')}<br>
@@ -1978,7 +1978,7 @@ def analytics():
                 const container = document.getElementById('reportsContainer');
                 
                 try {{
-                    container.innerHTML = '<div class="loading">📊 Loading reports...</div>';
+                    container.innerHTML = '<div class="loading">Loading reports...</div>';
                     
                     const response = await fetch(`/api/historical/reports?type=${{reportType}}&days=${{days}}`);
                     const data = await response.json();
@@ -1989,13 +1989,13 @@ def analytics():
                     
                     renderReportsTable(data.data, reportType, container);
                 }} catch (error) {{
-                    container.innerHTML = `<div style="color: #ef4444; padding: 20px; text-align: center;">❌ Error loading reports: ${{error.message}}</div>`;
+                    container.innerHTML = `<div style="color: #ef4444; padding: 20px; text-align: center;">Error loading reports: ${{error.message}}</div>`;
                 }}
             }});
             
             function renderReportsTable(data, reportType, container) {{
                 if (!data || data.length === 0) {{
-                    container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">📊 No report data available for the selected period</div>';
+                    container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No report data available for the selected period</div>';
                     return;
                 }}
                 
@@ -2171,7 +2171,7 @@ def analytics():
                 const insightsEl = document.getElementById('performanceInsights');
                 
                 if (!insights || insights.length === 0) {{
-                    insightsEl.innerHTML = '<div style="background: white; padding: 30px; border-radius: 8px; text-align: center; color: #10b981;"><strong>🎉 Great Performance!</strong><br>No significant performance issues detected in the analyzed period.</div>';
+                    insightsEl.innerHTML = '<div style="background: white; padding: 30px; border-radius: 8px; text-align: center; color: #10b981;"><strong>Great Performance!</strong><br>No significant performance issues detected in the analyzed period.</div>';
                     return;
                 }}
                 
@@ -2179,7 +2179,7 @@ def analytics():
                     <div class="insight-item insight-${{insight.severity}}">
                         <div class="insight-title">${{insight.title}}</div>
                         <div class="insight-description">${{insight.description}}</div>
-                        <div class="insight-recommendation">💡 ${{insight.recommendation}}</div>
+                        <div class="insight-recommendation">${{insight.recommendation}}</div>
                     </div>
                 `).join('');
                 
@@ -2323,7 +2323,7 @@ def analytics():
         <head><title>Analytics Error</title></head>
         <body style="font-family: Arial, sans-serif; margin: 40px;">
         <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            <h1 style="color: #ef4444;">⚠️ Analytics Dashboard Error</h1>
+            <h1 style="color: #ef4444;">Analytics Dashboard Error</h1>
             <p style="color: #666;">Unable to load analytics data</p>
             <div style="background: #fee; padding: 15px; border-radius: 5px; margin: 20px 0;">
                 <strong>Error details:</strong><br>
@@ -2751,7 +2751,7 @@ def index():
         <body>
         <div class="container">
             <h1>
-                <span class="emoji">🛰️</span>
+                <span class="emoji">Starlink</span>
                 Starlink Speed Monitor - Interactive Dashboard
                 <span style="margin-left: auto;">
                     <span class="status-indicator {'status-connected' if state == 'CONNECTED' else 'status-disconnected'}"></span>
@@ -2784,9 +2784,9 @@ def index():
                 </div>
             </nav>
             
-            {f'<div class="success-notice"><span class="notice-icon">✅</span><strong>Real Speed Data:</strong> Showing actual measured speeds from recent high-usage periods!</div>' if has_real_data else ''}
+            {f'<div class="success-notice"><span class="notice-icon"></span><strong>Real Speed Data:</strong> Showing actual measured speeds from recent high-usage periods!</div>' if has_real_data else ''}
             
-            {f'<div class="info-notice"><span class="notice-icon">ℹ️</span><strong>Low Activity Detected:</strong> The speeds shown reflect current low usage. <a href="/speedtest" class="speed-test-btn">Run Speed Test →</a></div>' if not has_real_data and downlink_mbps < 5 else ''}
+            {f'<div class="info-notice"><span class="notice-icon"></span><strong>Low Activity Detected:</strong> The speeds shown reflect current low usage. <a href="/speedtest" class="speed-test-btn">Run Speed Test →</a></div>' if not has_real_data and downlink_mbps < 5 else ''}
             
             <!-- Stats Grid -->
             <div class="stats-grid">
@@ -2834,22 +2834,22 @@ def index():
             <!-- Charts Grid -->
             <div class="charts-grid">
                 <div class="chart-container">
-                    <div class="chart-title">📊 Network Latency (Last 5 Minutes)</div>
+                    <div class="chart-title">Network Latency (Last 5 Minutes)</div>
                     <canvas id="latencyChart" width="400" height="200"></canvas>
                 </div>
                 
                 <div class="chart-container">
-                    <div class="chart-title">⚡ Speed Trends (Mbps)</div>
+                    <div class="chart-title">Speed Trends (Mbps)</div>
                     <canvas id="speedChart" width="400" height="200"></canvas>
                 </div>
                 
                 <div class="chart-container">
-                    <div class="chart-title">🎯 Connection Quality Score</div>
+                    <div class="chart-title">Connection Quality Score</div>
                     <canvas id="qualityChart" width="400" height="200"></canvas>
                 </div>
                 
                 <div class="chart-container">
-                    <div class="chart-title">🚧 Obstruction Levels (%)</div>
+                    <div class="chart-title">Obstruction Levels (%)</div>
                     <canvas id="obstructionChart" width="400" height="200"></canvas>
                 </div>
             </div>
@@ -2869,16 +2869,16 @@ def index():
                 </div>
                 <div class="info-item">
                     <span>SNR Above Noise Floor</span>
-                    <strong>{'✅ Yes' if snr_above_noise else '❌ No'}</strong>
+                    <strong>{'Yes' if snr_above_noise else 'No'}</strong>
                 </div>
                 <div class="info-item">
                     <span>GPS Status</span>
-                    <strong>{'✅ Valid' if gps_valid else '❌ Invalid'} ({gps_sats} satellites)</strong>
+                    <strong>{'Valid' if gps_valid else 'Invalid'} ({gps_sats} satellites)</strong>
                 </div>
                 <div class="info-item">
                     <span>Location</span>
                     <strong>
-                        {f'<a href="https://www.google.com/maps?q={latitude},{longitude}" target="_blank" style="color: #4f46e5; text-decoration: none;">{location_str} 🗺️</a>' if (latitude != 0 and longitude != 0) else location_str}
+                        {f'<a href="https://www.google.com/maps?q={latitude},{longitude}" target="_blank" style="color: #4f46e5; text-decoration: none;">{location_str}</a>' if (latitude != 0 and longitude != 0) else location_str}
                     </strong>
                 </div>
                 <div class="info-item">
@@ -3086,7 +3086,7 @@ def index():
         <head><title>Starlink Monitor - Error</title></head>
         <body style="font-family: Arial, sans-serif; margin: 40px;">
         <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            <h1 style="color: #ef4444;">⚠️ Starlink Monitor - Connection Error</h1>
+            <h1 style="color: #ef4444;">Starlink Monitor - Connection Error</h1>
             <p style="color: #666;">Unable to connect to Starlink dish</p>
             <div style="background: #fee; padding: 15px; border-radius: 5px; margin: 20px 0;">
                 <strong>Error details:</strong><br>
@@ -3117,7 +3117,7 @@ def advanced_monitoring():
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>🔬 Advanced Monitoring - Starlink Monitor</title>
+            <title>Advanced Monitoring - Starlink Monitor</title>
             <meta http-equiv="refresh" content="30">
             <style>
                 * {{
@@ -3294,39 +3294,39 @@ def advanced_monitoring():
         </head>
         <body>
             <div class="container">
-                <h1>🔬 Advanced Monitoring</h1>
+                <h1>Advanced Monitoring</h1>
                 
                 <nav class="main-nav">
                     <div class="nav-brand">
-                        <span class="nav-logo">🛰️</span>
+                        <span class="nav-logo">Starlink</span>
                         <span class="nav-title">Starlink Monitor</span>
                     </div>
                     <div class="nav-links">
                         <a href="/" class="nav-link">
-                            <span class="nav-icon">📊</span>
+                            <span class="nav-icon">Monitor</span>
                             <span class="nav-text">Live Monitor</span>
                         </a>
                         <a href="/speedtest" class="nav-link">
-                            <span class="nav-icon">⚡</span>
+                            <span class="nav-icon">Speed Test</span>
                             <span class="nav-text">Speed Test</span>
                         </a>
                         <a href="/analytics" class="nav-link">
-                            <span class="nav-icon">📈</span>
+                            <span class="nav-icon">Analytics</span>
                             <span class="nav-text">Analytics</span>
                         </a>
                         <a href="/advanced" class="nav-link active">
-                            <span class="nav-icon">🔬</span>
+                            <span class="nav-icon">Advanced</span>
                             <span class="nav-text">Advanced</span>
                         </a>
                     </div>
                 </nav>
                 
                 <div class="info-notice">
-                    <strong>🔬 Advanced Monitoring:</strong> Deep insights into outages, weather correlation, and peak performance patterns.
+                    <strong>Advanced Monitoring:</strong> Deep insights into outages, weather correlation, and peak performance patterns.
                 </div>
                 
                 <div class="weather-setup">
-                    <strong>⚡ Enable Weather Correlation:</strong> To get weather impact analysis, add these to your docker-compose.yml:
+                    <strong>Enable Weather Correlation:</strong> To get weather impact analysis, add these to your docker-compose.yml:
                     <div class="setup-code">
 environment:<br>
 &nbsp;&nbsp;- WEATHER_API_KEY=your_openweathermap_key<br>
@@ -3338,22 +3338,22 @@ environment:<br>
                 
                 <div class="advanced-grid">
                     <div class="advanced-card">
-                        <h3>🚨 Outage Analysis</h3>
+                        <h3>Outage Analysis</h3>
                         <div id="outageAnalysis" class="loading">Loading outage data...</div>
                     </div>
                     
                     <div class="advanced-card">
-                        <h3>🌤️ Weather Impact</h3>
+                        <h3>Weather Impact</h3>
                         <div id="weatherImpact" class="loading">Loading weather correlation...</div>
                     </div>
                     
                     <div class="advanced-card">
-                        <h3>⚡ Peak Performance</h3>
+                        <h3>Peak Performance</h3>
                         <div id="peakAnalysis" class="loading">Loading performance patterns...</div>
                     </div>
                     
                     <div class="advanced-card">
-                        <h3>🔮 Weather Forecast</h3>
+                        <h3>Weather Forecast</h3>
                         <div id="weatherForecast" class="loading">Loading weather forecast...</div>
                     </div>
                 </div>

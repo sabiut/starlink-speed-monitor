@@ -203,7 +203,7 @@ def speedtest_trigger():
     <html>
     <head><title>Speed Test Trigger</title></head>
     <body style="font-family: Arial, sans-serif; padding: 40px;">
-    <h1>🚀 Speed Test Instructions</h1>
+    <h1>Speed Test Instructions</h1>
     <p><strong>To see your real speeds in the monitor:</strong></p>
     <ol>
         <li>Keep this browser tab open</li>
@@ -435,7 +435,7 @@ def index():
         <body>
         <div class="container">
             <h1>
-                <span class="emoji">🛰️</span>
+                <span class="emoji">Starlink</span>
                 Starlink Speed Monitor - Interactive Dashboard
                 <span style="margin-left: auto;">
                     <span class="status-indicator {'status-connected' if state == 'CONNECTED' else 'status-disconnected'}"></span>
@@ -443,9 +443,9 @@ def index():
                 </span>
             </h1>
             
-            {f'<div class="success-notice"><span class="notice-icon">✅</span><strong>Real Speed Data:</strong> Showing actual measured speeds from recent high-usage periods!</div>' if has_real_data else ''}
+            {f'<div class="success-notice"><span class="notice-icon"></span><strong>Real Speed Data:</strong> Showing actual measured speeds from recent high-usage periods!</div>' if has_real_data else ''}
             
-            {f'<div class="info-notice"><span class="notice-icon">ℹ️</span><strong>Low Activity Detected:</strong> The speeds shown reflect current low usage. <a href="/speedtest" class="speed-test-btn">Run Speed Test →</a></div>' if not has_real_data and downlink_mbps < 5 else ''}
+            {f'<div class="info-notice"><span class="notice-icon"></span><strong>Low Activity Detected:</strong> The speeds shown reflect current low usage. <a href="/speedtest" class="speed-test-btn">Run Speed Test →</a></div>' if not has_real_data and downlink_mbps < 5 else ''}
             
             <!-- Stats Grid -->
             <div class="stats-grid">
@@ -493,22 +493,22 @@ def index():
             <!-- Charts Grid -->
             <div class="charts-grid">
                 <div class="chart-container">
-                    <div class="chart-title">📊 Network Latency (Last 5 Minutes)</div>
+                    <div class="chart-title">Network Latency (Last 5 Minutes)</div>
                     <canvas id="latencyChart" width="400" height="200"></canvas>
                 </div>
                 
                 <div class="chart-container">
-                    <div class="chart-title">⚡ Speed Trends (Mbps)</div>
+                    <div class="chart-title">Speed Trends (Mbps)</div>
                     <canvas id="speedChart" width="400" height="200"></canvas>
                 </div>
                 
                 <div class="chart-container">
-                    <div class="chart-title">🎯 Connection Quality Score</div>
+                    <div class="chart-title">Connection Quality Score</div>
                     <canvas id="qualityChart" width="400" height="200"></canvas>
                 </div>
                 
                 <div class="chart-container">
-                    <div class="chart-title">🚧 Obstruction Levels (%)</div>
+                    <div class="chart-title">Obstruction Levels (%)</div>
                     <canvas id="obstructionChart" width="400" height="200"></canvas>
                 </div>
             </div>
@@ -524,11 +524,11 @@ def index():
                 </div>
                 <div class="info-item">
                     <span>SNR Above Noise Floor</span>
-                    <strong>{'✅ Yes' if snr_above_noise else '❌ No'}</strong>
+                    <strong>{'Yes' if snr_above_noise else 'No'}</strong>
                 </div>
                 <div class="info-item">
                     <span>GPS Status</span>
-                    <strong>{'✅ Valid' if gps_valid else '❌ Invalid'} ({gps_sats} satellites)</strong>
+                    <strong>{'Valid' if gps_valid else 'Invalid'} ({gps_sats} satellites)</strong>
                 </div>
                 <div class="info-item">
                     <span>Hardware Version</span>
@@ -735,7 +735,7 @@ def index():
         <head><title>Starlink Monitor - Error</title></head>
         <body style="font-family: Arial, sans-serif; margin: 40px;">
         <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            <h1 style="color: #ef4444;">⚠️ Starlink Monitor - Connection Error</h1>
+            <h1 style="color: #ef4444;">Starlink Monitor - Connection Error</h1>
             <p style="color: #666;">Unable to connect to Starlink dish</p>
             <div style="background: #fee; padding: 15px; border-radius: 5px; margin: 20px 0;">
                 <strong>Error details:</strong><br>

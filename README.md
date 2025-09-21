@@ -1,35 +1,35 @@
-# Starlink Speed Monitor 🛰️
+# Starlink Speed Monitor
 
 A comprehensive real-time monitoring application for your Starlink dish, built with Flask and Docker.
 
 ## Features
 
-### 📊 Live Monitoring
+### Live Monitoring
 - **Real-time Speed Monitoring** - Shows actual measured throughput during usage periods
 - **Connection Health** - Network latency, obstruction detection, and GPS status  
 - **Device Information** - Hardware/software versions, uptime, and system status
 - **Smart Speed Detection** - Captures actual speeds during active usage (speed tests, downloads)
 - **Auto-refresh Interface** - Updates every 10 seconds with live data
 
-### ⚡ Built-in Speed Tests
+### Built-in Speed Tests
 - **Multi-method Speed Testing** - Uses speedtest-cli, HTTP-based tests, and network fallbacks
 - **Historical Speed Test Results** - Track performance over time with charts
 - **Automated Scheduling** - Set up daily, weekly, or custom speed test schedules
 - **Speed Test Analytics** - Compare performance trends and identify patterns
 
-### 📈 Analytics Dashboard  
+### Analytics Dashboard  
 - **Historical Data Analysis** - View performance trends over days, weeks, and months
 - **Interactive Charts** - Real-time graphs of speed, latency, and connection quality
 - **Performance Insights** - Automated analysis of your connection patterns
 - **Outage Tracking** - Monitor and log connection disruptions
 
-### 🎨 Enhanced Interface
+### Enhanced Interface
 - **Unified Navigation** - Consistent navigation across all pages with active indicators
 - **Mobile Responsive** - Works perfectly on phones, tablets, and desktops
 - **Location Display** - Shows dish location with reverse geocoding and map links
 - **Account Customization** - Set custom account names and location information
 
-### 🐳 Docker Ready
+### Docker Ready
 - **Easy Deployment** - One-command setup with Docker Compose
 - **Health Monitoring** - Built-in container health checks
 - **Persistent Data** - SQLite database with volume mounting
@@ -51,11 +51,11 @@ A comprehensive real-time monitoring application for your Starlink dish, built w
 
 ### Network Topology
 The application must run on a device that can directly communicate with the Starlink dish. This means:
-- ✅ **Works**: Home network connected to Starlink
-- ✅ **Works**: Device connected to Starlink WiFi  
-- ❌ **Won't work**: Corporate network routing through Starlink
-- ❌ **Won't work**: VPN blocking local network access
-- ❌ **Won't work**: Docker network isolation preventing dish access
+- **Works**: Home network connected to Starlink
+- **Works**: Device connected to Starlink WiFi  
+- **Won't work**: Corporate network routing through Starlink
+- **Won't work**: VPN blocking local network access
+- **Won't work**: Docker network isolation preventing dish access
 
 ## Quick Start
 
@@ -138,9 +138,9 @@ The Starlink API reports **actual data throughput** at any moment, not maximum c
 - Device status indicators
 
 **Navigation:**
-- 📊 **Live Monitor** - Real-time dashboard with current status
-- ⚡ **Speed Test** - Built-in speed testing with history and scheduling  
-- 📈 **Analytics** - Historical data analysis and performance trends
+- **Live Monitor** - Real-time dashboard with current status
+- **Speed Test** - Built-in speed testing with history and scheduling  
+- **Analytics** - Historical data analysis and performance trends
 
 ## Troubleshooting
 
